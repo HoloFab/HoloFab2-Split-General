@@ -1,13 +1,15 @@
 ﻿using System;
+using System.Collections.Generic;
 
 using System.Text;
 using Newtonsoft.Json;
 // Rhino only includes
-#if !UNITY
+#if !(UNITY_EDITOR || UNITY_ANDROID || UNITY_IOS || WINDOWS_UWP)
 using System.Drawing;
 using Rhino.Geometry;
 #endif
 
+using HoloFab;
 using HoloFab.CustomData;
 
 namespace HoloFab {
@@ -44,7 +46,7 @@ namespace HoloFab {
 		#endregion
 		//////////////////////////////////////////////////////////////////////////////
 		#region RhinoOnly
-		#if !UNITY
+		#if !(UNITY_EDITOR || UNITY_ANDROID || UNITY_IOS || WINDOWS_UWP)
 		public static double[] EncodePlane(Plane _plane) {
 			Quaternion quaternion = new Quaternion();
 			quaternion.SetRotation(Plane.WorldXY, _plane);
@@ -69,7 +71,7 @@ namespace HoloFab {
 		#endregion
 		//////////////////////////////////////////////////////////////////////////////
 		#region UnityOnly
-		#if UNITY
+		#if (UNITY_EDITOR || UNITY_ANDROID || UNITY_IOS || WINDOWS_UWP)
 		public static List<MeshData> InterpreteMesh(string data){
 			return JsonConvert.DeserializeObject<List<MeshData> >(data);
 		}

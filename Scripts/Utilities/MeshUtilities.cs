@@ -1,14 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 
+#if !(UNITY_EDITOR || UNITY_ANDROID || UNITY_IOS || WINDOWS_UWP)
 using Rhino.Geometry;
 using System.Drawing;
+#else
+using UnityEngine;
+#endif
 
 using HoloFab.CustomData;
 
 namespace HoloFab {
 	// Tools for processing meshes.
 	public static class MeshUtilities {
+		//////////////////////////////////////////////////////////////////////////////
+		#region RhinoOnly
+		#if !(UNITY_EDITOR || UNITY_ANDROID || UNITY_IOS || WINDOWS_UWP)
 		// Encode a Mesh.
 		public static MeshData EncodeMesh(Mesh _mesh) {
 			MeshData meshData = new MeshData();
@@ -33,7 +40,12 @@ namespace HoloFab {
 			meshData.colors = new List<int[]>() {EncodeUtilities.EncodeColor(_color)};
 			return meshData;
 		}
-        // A function to decode extracted data into Unity Mesh object.
+		#endif
+		#endregion
+		//////////////////////////////////////////////////////////////////////////////
+		#region UnityOnly
+		#if (UNITY_EDITOR || UNITY_ANDROID || UNITY_IOS || WINDOWS_UWP)
+		// A function to decode extracted data into Unity Mesh object.
 		public static Mesh DecodeMesh(List<Vector3> currentVertices, List<int> currentFaces, List<Color> currentColors=null) {
 			Mesh mesh = new Mesh();// { name = name };
 			mesh.SetVertices(currentVertices);
@@ -43,5 +55,7 @@ namespace HoloFab {
 			mesh.RecalculateNormals();
 			return mesh;
 		}
+		#endif
+		#endregion
 	}
 }
