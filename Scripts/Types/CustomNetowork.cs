@@ -3,6 +3,7 @@ using System;
 namespace HoloFab {
 	// Structure to hold Custom data types holding data to be sent.
 	namespace CustomData {
+		#if !(UNITY_EDITOR || UNITY_ANDROID || UNITY_IOS || WINDOWS_UWP)
 		// A struct holding network info for other components.
 		public class Connection {
 			public string remoteIP;
@@ -40,19 +41,20 @@ namespace HoloFab {
 				this.udpReceiver.Disconnect();
 				this.udpSender.Disconnect();
 			}
-
+            
 			public bool PendingMessages {
 				get {
 					return (this.tcpSender.IsNotEmpty || this.udpSender.IsNotEmpty);
 				}
 			}
-
-			public void TransmitIP() { 
+            
+			public void TransmitIP() {
 				// Send local IPAddress for device to communicate back.
 				byte[] bytes = EncodeUtilities.EncodeData("IPADDRESS", NetworkUtilities.LocalIPAddress(), out string currentMessage);
 				this.udpSender.QueueUpData(bytes);
 				//bool success = connect.udpSender.flagSuccess;
 			}
 		}
+		#endif
 	}
 }
