@@ -21,13 +21,13 @@ namespace HoloFab {
 		}
 		// Custom Tag item encoding.
 		[Serializable]
-		public struct TagData {
+		public struct LabelData {
 			public List<string> text;
 			public List<float[]> textLocation;
 			public List<float> textSize;
 			public List<int[]> textColor;
             
-			public TagData(List<string> _text, List<float[]> _textLocation, List<float> _textSize, List<int[]> _textColor) {
+			public LabelData(List<string> _text, List<float[]> _textLocation, List<float> _textSize, List<int[]> _textColor) {
 				this.text = _text;
 				this.textLocation = _textLocation;
 				this.textSize = _textSize;

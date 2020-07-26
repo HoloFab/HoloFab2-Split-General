@@ -81,8 +81,8 @@ namespace HoloFab {
 		public static List<RobotControllerData> InterpreteRobotController(string data){
 			return JsonConvert.DeserializeObject<List<RobotControllerData> >(data);
 		}
-		public static TagData InterpreteTag(string data){
-			return JsonConvert.DeserializeObject<TagData>(data);
+		public static LabelData InterpreteLabel(string data){
+			return JsonConvert.DeserializeObject<LabelData>(data);
 		}
 		public static string InterpreteIPAddress(string data){
 			return data.Replace("\"", string.Empty);
