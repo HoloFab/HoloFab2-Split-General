@@ -11,13 +11,15 @@ namespace HoloFab {
 			public UDPSend udpSender;
 			public UDPReceive udpReceiver;
 			public TCPSend tcpSender;
-            
+			public TCPReceive tcpReceiver;
+
 			public Connection(string _remoteIP){
 				this.remoteIP = _remoteIP;
 				this.status = false;
 				this.udpSender = new UDPSend(_remoteIP);
 				this.udpReceiver = new UDPReceive();
 				this.tcpSender = new TCPSend(_remoteIP);
+				this.tcpReceiver = new TCPReceive(13131);
 			}
 			~Connection() {
 				Disconnect();
@@ -34,12 +36,14 @@ namespace HoloFab {
 					return false;
 				this.udpReceiver.Connect();
 				this.udpSender.Connect();
+				this.tcpReceiver.Connect();
 				return true;
 			}
 			public void Disconnect(){
 				this.tcpSender.Disconnect();
 				this.udpReceiver.Disconnect();
 				this.udpSender.Disconnect();
+				this.tcpReceiver.Disconnect();
 			}
 			public bool PendingMessages {
 				get {
