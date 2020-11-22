@@ -274,9 +274,10 @@ namespace HoloFab {
 									this.client = null;
 								}
 							}
-                            
-                            
-						} catch (Exception e) {
+						} catch (Exception exception) {
+							#if DEBUGWARNING
+							DebugUtilities.UniversalWarning(this.sourceName, "Exception: " + exception.ToString(), ref this.debugMessages);
+							#endif
 							this.stream.Close();
 							this.client.Close();
 							this.client = null;

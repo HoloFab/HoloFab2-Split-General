@@ -40,6 +40,18 @@ namespace HoloFab {
 			meshData.colors = new List<int[]>() {EncodeUtilities.EncodeColor(_color)};
 			return meshData;
 		}
+		// Decode a Mesh.
+		public static Mesh DecodeMesh(MeshData data) {
+			Mesh mesh = new Mesh();
+			foreach (float[] vertex in data.vertices)
+				mesh.Vertices.Add(new Point3d(vertex[0], vertex[1], vertex[2]));
+			foreach (int[] face in data.faces)
+				mesh.Faces.AddFace(face[0], face[1], face[2]);
+			mesh.FaceNormals.ComputeFaceNormals();
+			mesh.Normals.ComputeNormals();
+			mesh.Compact();
+			return mesh;
+		}
 		#endif
 		#endregion
 		//////////////////////////////////////////////////////////////////////////////
