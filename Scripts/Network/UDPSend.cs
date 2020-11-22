@@ -188,7 +188,7 @@ namespace HoloFab {
 		#else
 		////////////////////////////////////////////////////////////////////////
 		// Start a connection and send given byte array.
-		private async void Send(byte[] sendBuffer) {
+		private void Send(byte[] sendBuffer) {
 			this.flagSuccess = false;
 			// Reset.
 			if (this.client != null) {
