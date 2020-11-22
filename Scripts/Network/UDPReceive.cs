@@ -58,8 +58,7 @@ namespace HoloFab {
 			this.localPort = _localPort;
 			this.debugMessages = new List<string>();
 			#if !WINDOWS_UWP
-			this.receiver = new ThreadInterface();
-			this.receiver.threadAction = ReceiveData;
+			this.receiver = new ThreadInterface(ReceiveData);
 			#endif
 			this.dataMessages = new Queue<string>();
 			this.connectionHistory = new Queue<string>();

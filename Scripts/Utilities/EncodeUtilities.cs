@@ -7,6 +7,8 @@ using Newtonsoft.Json;
 #if !(UNITY_EDITOR || UNITY_ANDROID || UNITY_IOS || WINDOWS_UWP)
 using System.Drawing;
 using Rhino.Geometry;
+#else
+using UnityEngine;
 #endif
 
 using HoloFab;
@@ -86,6 +88,23 @@ namespace HoloFab {
 		}
 		public static string InterpreteIPAddress(string data){
 			return data.Replace("\"", string.Empty);
+		}
+		// Encode a Location.
+		public static float[] EncodeLocation(Vector3 _point){
+			return new float[] {
+					   (float)Math.Round(_point.x*1000.0,3),
+					   (float)Math.Round(_point.z*1000.0,3),
+					   (float)Math.Round(_point.y*1000.0,3)
+			};
+		}
+		// Encode a Color.
+		public static int[] EncodeColor(Color _color) {
+			return new int[] {
+					   Convert.ToInt32(_color.a*255.0f),
+					   Convert.ToInt32(_color.r*255.0f),
+					   Convert.ToInt32(_color.g*255.0f),
+					   Convert.ToInt32(_color.b*255.0f)
+			};
 		}
 		#endif
 		#endregion

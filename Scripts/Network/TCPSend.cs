@@ -1,13 +1,21 @@
-﻿// #define DEBUG
+#define DEBUG
 #define DEBUGWARNING
-#undef DEBUG
+// #undef DEBUG
 // #undef DEBUGWARNING
 
 using System;
 using System.Collections.Generic;
 
+#if WINDOWS_UWP
+using Windows.Networking;
+using Windows.Networking.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
+using System.IO;
+#else
 using System.Net.Sockets;
 using System.Threading;
+#endif
 
 using HoloFab;
 using HoloFab.CustomData;
@@ -18,13 +26,19 @@ namespace HoloFab {
 		// An IP and a port for TCP communication to send to.
 		public string remoteIP;
 		private int remotePort;
+		public int timeout = 2000;
         
+		public bool flagConnected = false;
 		public bool flagSuccess = false;
-		public bool flagConnected;
         
 		// Network Objects:
 		#if WINDOWS_UWP
 		private string sourceName = "TCP Send Interface UWP";
+		// Connection Object Reference.
+		private StreamSocket client;
+		// Task Object Reference.
+		private CancellationTokenSource connectionCancellationTokenSource;
+		private CancellationTokenSource sendCancellationTokenSource;
 		#else
 		private string sourceName = "TCP Send Interface";
 		// Connection Object Reference.
@@ -51,8 +65,7 @@ namespace HoloFab {
 			this.remoteIP = _remoteIP;
 			this.remotePort = _remotePort;
 			this.debugMessages = new List<string>();
-			this.sender = new ThreadInterface();
-			this.sender.threadAction = SendFromQueue;
+			this.sender = new ThreadInterface(SendFromQueue);
 			// Reset.
 			Disconnect();
 		}
@@ -78,41 +91,124 @@ namespace HoloFab {
 		}
 		// Enqueue data.
 		public void QueueUpData(byte[] newData) {
-			lock (this.sendQueue) {
+			lock (this.sendQueue)
 				this.sendQueue.Enqueue(newData);
-			}
 		}
 		// Check the queue and try send it.
 		public void SendFromQueue() {
 			try {
 				if (this.IsNotEmpty) {
 					byte[] currentData;
-					lock (this.sendQueue) {
+					lock (this.sendQueue)
 						currentData = this.sendQueue.Dequeue();
-					}
 					// Peek message to send
 					Send(currentData);
-					//// if no exception caught and data sent successfully - remove from queue.
-					//if (!this.flagSuccess)
-					//	lock (this.sendQueue) {
-					//		this.sendQueue.Enqueue(currentData);
-					//	}
+					// if no exception caught and data sent successfully - remove from queue.
+					// if (!this.flagSuccess)
+					// 	lock (this.sendQueue)
+					// 		this.sendQueue.Dequeue(currentData);
 				}
 			} catch (Exception exception) {
-				#if DEBUG
-				DebugUtilities.UniversalDebug(this.sourceName, "Queue Exception: " + exception.ToString(), ref this.debugMessages);
+				#if DEBUGWARNING
+				DebugUtilities.UniversalWarning(this.sourceName, "Queue Exception: " + exception.ToString(), ref this.debugMessages);
 				#endif
-				this.flagSuccess = false;
 			}
 		}
 		#if WINDOWS_UWP
 		////////////////////////////////////////////////////////////////////////
 		// Establish Connection
-		public async void Connect() {}
+		public async void Connect() {
+			// Reset.
+			Disconnect();
+			this.client = new StreamSocket();
+			this.connectionCancellationTokenSource = new CancellationTokenSource();
+			this.sendCancellationTokenSource = new CancellationTokenSource();
+			this.flagConnected = false;
+			try {
+				this.connectionCancellationTokenSource.CancelAfter(this.timeout);
+				await this.client.ConnectAsync(new HostName(this.remoteIP), this.remotePort.ToString())
+				.AsTask(this.connectionCancellationTokenSource.Token);
+				StartSending();
+				this.flagConnected = true;
+				// Acknowledge.
+				#if DEBUG
+				DebugUtilities.UniversalDebug(this.sourceName, "Connection Stablished!", ref this.debugMessages);
+				#endif
+				// return true;
+			} catch(TaskCanceledException) {
+				#if DEBUGWARNING
+				DebugUtilities.UniversalWarning(this.sourceName, "Failed to connect", ref this.debugMessages);
+				#endif
+			} catch (Exception exception) {
+				SocketErrorStatus webErrorStatus = SocketError.GetStatus(exception.GetBaseException().HResult);
+				string errorMessage = (webErrorStatus.ToString() != "Unknown") ? webErrorStatus.ToString() : exception.Message;
+				#if DEBUGWARNING
+				DebugUtilities.UniversalWarning(this.sourceName, "UnhandledException: " + errorMessage, ref this.debugMessages);
+				#endif
+				// return false;
+			}
+		}
 		// Start a connection and send given byte array.
-		private async void Send(byte[] sendBuffer) {}
+		public async void Send(byte[] sendBuffer) {
+			this.flagSuccess = false;
+			try {
+				if ((this.client != null) && this.flagConnected) {
+					// Write.
+					using (Stream outputStream = this.client.OutputStream.AsStreamForWrite()) {
+						await outputStream.WriteAsync(sendBuffer, 0, sendBuffer.Length, this.sendCancellationTokenSource.Token);
+					}
+					// Acknowledge.
+					#if DEBUG
+					DebugUtilities.UniversalDebug(this.sourceName, "Data Sent!", ref this.debugMessages);
+					#endif
+					this.flagSuccess = true;
+				} else {
+					#if DEBUGWARNING
+					DebugUtilities.UniversalWarning(this.sourceName, "Not connected", ref this.debugMessages);
+					#endif
+					this.flagConnected = false;
+				}
+			} catch(TaskCanceledException) {
+				// timeout
+				#if DEBUGWARNING
+				DebugUtilities.UniversalWarning(this.sourceName, "Connection timed out!", ref this.debugMessages);
+				#endif
+				this.flagConnected = false;
+			} catch (Exception exception) {
+				// Exception.
+				#if DEBUGWARNING
+				DebugUtilities.UniversalWarning(this.sourceName, "Exception: " + exception.ToString(), ref this.debugMessages);
+				#endif
+			}
+		}
 		// Stop Connection.
-		public async void Disconnect() {}
+		public async void Disconnect() {
+			if (this.connectionCancellationTokenSource != null) {
+				this.connectionCancellationTokenSource.Cancel();
+				this.connectionCancellationTokenSource.Dispose();
+				this.connectionCancellationTokenSource = null;
+				#if DEBUG
+				DebugUtilities.UniversalDebug(this.sourceName, "Resetting cancellation token source.", ref this.debugMessages);
+				#endif
+			}
+			if (this.sendCancellationTokenSource != null) {
+				this.sendCancellationTokenSource.Cancel();
+				this.sendCancellationTokenSource.Dispose();
+				this.sendCancellationTokenSource = null;
+				#if DEBUG
+				DebugUtilities.UniversalDebug(this.sourceName, "Resetting cancellation token source.", ref this.debugMessages);
+				#endif
+			}
+			if (this.client != null) {
+				this.client.Dispose();
+				this.client = null;
+				#if DEBUG
+				DebugUtilities.UniversalDebug(this.sourceName, "Stopping Client.", ref this.debugMessages);
+				#endif
+			}
+			StopSending();
+			this.flagConnected = false;
+		}
 		#else
 		////////////////////////////////////////////////////////////////////////
 		// Establish Connection
@@ -120,11 +216,14 @@ namespace HoloFab {
 			// Reset.
 			Disconnect();
 			this.client = new TcpClient();
+			this.flagConnected = false;
 			try {
 				// Open.
-				if (!this.client.ConnectAsync(this.remoteIP, this.remotePort).Wait(2000)) {
+				if (!this.client.ConnectAsync(this.remoteIP, this.remotePort).Wait(this.timeout)) {
 					// connection failure
-					this.flagConnected = false;
+					#if DEBUGWARNING
+					DebugUtilities.UniversalWarning(this.sourceName, "Failed to connect", ref this.debugMessages);
+					#endif
 					return false;
 				}
 				this.stream = this.client.GetStream();
@@ -137,34 +236,32 @@ namespace HoloFab {
 				return true;
 			} catch (ArgumentNullException exception) {
 				// Exception.
-				#if DEBUG
-				DebugUtilities.UniversalDebug(this.sourceName, "ArgumentNullException: " + exception.ToString(), ref this.debugMessages);
+				#if DEBUGWARNING
+				DebugUtilities.UniversalWarning(this.sourceName, "ArgumentNullException: " + exception.ToString(), ref this.debugMessages);
 				#endif
-				this.flagConnected = false;
 				return false;
 			} catch (SocketException exception) {
 				// Exception.
-				#if DEBUG
-				DebugUtilities.UniversalDebug(this.sourceName, "SocketException: " + exception.ToString(), ref this.debugMessages);
+				#if DEBUGWARNING
+				DebugUtilities.UniversalWarning(this.sourceName, "SocketException: " + exception.ToString(), ref this.debugMessages);
 				#endif
-				this.flagConnected = false;
 				return false;
 			} catch (Exception exception) {
-				#if DEBUG
-				DebugUtilities.UniversalDebug(this.sourceName, "UnhandledException: " + exception.ToString(), ref this.debugMessages);
+				#if DEBUGWARNING
+				DebugUtilities.UniversalWarning(this.sourceName, "UnhandledException: " + exception.ToString(), ref this.debugMessages);
 				#endif
-				this.flagConnected = false;
 				return false;
 			}
 		}
 		// Start a connection and send given byte array.
 		private void Send(byte[] sendBuffer) {
+			this.flagSuccess = false;
 			try {
 				if (!this.client.Connected) {
-					#if DEBUG
-					DebugUtilities.UniversalDebug(this.sourceName, "Client DisflagConnected!", ref this.debugMessages);
+					#if DEBUGWARNING
+					DebugUtilities.UniversalWarning(this.sourceName, "Client Disconnected!", ref this.debugMessages);
 					#endif
-					this.flagSuccess = false;
+					return;
 				}
                 
 				// Write.
@@ -174,27 +271,22 @@ namespace HoloFab {
 				DebugUtilities.UniversalDebug(this.sourceName, "Data Sent!", ref this.debugMessages);
 				#endif
 				this.flagSuccess = true;
-				return;
 			} catch (ArgumentNullException exception) {
 				// Exception.
-				#if DEBUG
-				DebugUtilities.UniversalDebug(this.sourceName, "ArgumentNullException: " + exception.ToString(), ref this.debugMessages);
+				#if DEBUGWARNING
+				DebugUtilities.UniversalWarning(this.sourceName, "ArgumentNullException: " + exception.ToString(), ref this.debugMessages);
 				#endif
-				this.flagSuccess = false;
 			} catch (SocketException exception) {
 				// Exception.
-				#if DEBUG
-				DebugUtilities.UniversalDebug(this.sourceName, "SocketException: " + exception.ToString(), ref this.debugMessages);
+				#if DEBUGWARNING
+				DebugUtilities.UniversalWarning(this.sourceName, "SocketException: " + exception.ToString(), ref this.debugMessages);
 				#endif
-				this.flagSuccess = false;
 			} catch (Exception exception) {
 				// Exception.
-				#if DEBUG
-				DebugUtilities.UniversalDebug(this.sourceName, "Exception: " + exception.ToString(), ref this.debugMessages);
+				#if DEBUGWARNING
+				DebugUtilities.UniversalWarning(this.sourceName, "Exception: " + exception.ToString(), ref this.debugMessages);
 				#endif
-				this.flagSuccess = false;
 			}
-			this.flagSuccess = false;
 		}
 		// Stop Connection.
 		public void Disconnect() {
@@ -209,8 +301,9 @@ namespace HoloFab {
 			}
 			StopSending();
 			#if DEBUG
-			DebugUtilities.UniversalDebug(this.sourceName, "DisflagConnected.", ref this.debugMessages);
+			DebugUtilities.UniversalDebug(this.sourceName, "Disconnected.", ref this.debugMessages);
 			#endif
+			this.flagConnected = false;
 		}
 		#endif
 	}

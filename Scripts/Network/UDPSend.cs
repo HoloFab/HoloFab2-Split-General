@@ -58,8 +58,7 @@ namespace HoloFab {
 			this.remoteIP = _remoteIP;
 			this.remotePort = _remotePort;
 			this.debugMessages = new List<string>();
-			this.sender = new ThreadInterface();
-			this.sender.threadAction = SendFromQueue;
+			this.sender = new ThreadInterface(SendFromQueue);
 		}
 		~UDPSend() {
 			Disconnect();

@@ -10,6 +10,7 @@ namespace HoloFab {
 	namespace CustomData {
 		class ThreadInterface {
 			public string sourceName = "Thread Intrface";
+			public int delayTime = 0; // milliseconds
             
 			#if WINDOWS_UWP
 			// thread Object Reference.
@@ -22,7 +23,7 @@ namespace HoloFab {
 			// History:
 			// - Debug History.
 			public List<string> debugMessages = new List<string>();
-
+            
 			// Actual Action to be ran in the loop to be overridden.
 			public Action threadAction;
             
@@ -35,11 +36,19 @@ namespace HoloFab {
 			public static bool CheckLoopCondition() {
 				return true;
 			}
+            
+			public ThreadInterface (Action _threadAction, int _delayTime=0){
+				this.threadAction = _threadAction;
+				this.delayTime = _delayTime;
+			}
+            
 			// Infinite Loop Executing set function.
 			public void ThreadLoop() {
 				if (this.threadAction != null) {
 					while (true) {// this.checkCondition()) {
 						this.threadAction();
+						if (this.delayTime > 0)
+							Thread.Sleep(this.delayTime);
 					}
 				}
 			}
