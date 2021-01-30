@@ -29,16 +29,19 @@ namespace HoloFab {
 			message += EncodeUtilities.messageSplitter; // End Message Char
 			return Encoding.UTF8.GetBytes(message);
 		}
+
 		// If message wsn't stripped - remove the message splitter
 		public static string StripSplitter(string message){
 			if (message.EndsWith(EncodeUtilities.messageSplitter))
 				return message.Substring(0, message.Length - 1);
 			return message;
 		}
+
 		// Decode Data into a string.
 		public static string DecodeData(byte[] data) {
 			return Encoding.UTF8.GetString(data);
 		}
+
 		// Decode Data into a string.
 		public static string DecodeData(byte[] data, int index, int count) {
 			return Encoding.UTF8.GetString(data, index, count);

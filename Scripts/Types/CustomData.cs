@@ -5,6 +5,7 @@ namespace HoloFab {
 	// Structure to hold Custom data types holding data to be sent.
 	namespace CustomData {
 		public enum SourceType { TCP, UDP };
+
 		// Custom Mesh item encoding.
 		[Serializable]
 		public class MeshData {
@@ -19,6 +20,7 @@ namespace HoloFab {
 				this.colors = new List<int[]>();
 			}
 		}
+
 		// Custom Tag item encoding.
 		[Serializable]
 		public struct LabelData {
@@ -34,6 +36,7 @@ namespace HoloFab {
 				this.textColor = _textColor;
 			}
 		}
+
 		// Cutom UI state encoding.
 		[Serializable]
 		public class UIData {
