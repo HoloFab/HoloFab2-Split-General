@@ -1,23 +1,15 @@
-// #define DEBUG
+#define DEBUG
 #define DEBUGWARNING
-#undef DEBUG
+// #undef DEBUG
 // #undef DEBUGWARNING
 
 using System;
 using System.Collections.Generic;
 
-#if WINDOWS_UWP
-using Windows.Networking;
-using Windows.Networking.Sockets;
-using Windows.Storage.Streams;
-using System.Threading;
-using System.Threading.Tasks;
-#else
 using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
-#endif
 
 using HoloFab.CustomData;
 
@@ -25,14 +17,51 @@ using HoloFab.CustomData;
 namespace HoloFab
 {
     // UDP sender.
-    public class UDPSend : UDPAgent    // : IDisposable
-    {
-        private CancellationTokenSource sendCancellation;
-        
+    public class UDPSend : UDPAgent {
+        public UDPSend(object _owner, string _remoteIP, int _remotePort = 12121) :
+            base(_owner, _remoteIP, _remotePort, _sendingEnabled:true, _receivingEnabled:false)
+        { }
+        ////////////////////////////////////////////////////////////////////////
+        #region SENDING
+        protected override void SendData(byte[] data) {
+            
+            this.flagSuccess = false;
+            //// Reset.
+            //if (client != null) {
+            //    client.Close();
+            //    client = null; // Good Practice?
+            //}
+            try {
+                this._client = new UdpClient(this.remoteIP, this.remotePort);
+                this._client.Send(data, data.Length);
+                this._client.Close();
+                #if DEBUG
+                DebugUtilities.UniversalDebug(this.sourceName,
+                    "Data Sent!",
+                    ref this.debugMessages);
+                #endif
+                this.flagSuccess = true;
+                return;
+            }
+            catch (Exception exception) {
+                string exceptionName = "OtherException";
+                #if DEBUGWARNING
+                DebugUtilities.UniversalWarning(this.sourceName,
+                    "Sending Exception: " + exceptionName +  ": " + exception.ToString(),
+                    ref this.debugMessages);
+                #endif
+            }
+            // if failed - queue up again
+            QueueUpData(data);
+        }
+        #endregion
+        /*
         // Queue of buffers to send.
         private Queue<byte[]> sendQueue = new Queue<byte[]>();
         // Accessor to check if there is data in queue
         public bool IsNotEmpty { get { return this.sendQueue.Count > 0; } }
+
+        private ThreadInterface sendingTask;
 
         /// <summary>
         /// Creates a UDP Agent for handling the sending and/or receiving data.
@@ -41,37 +70,30 @@ namespace HoloFab
         /// <param name="remoteIP">IP of the target device for sending</param>
         /// <param name="remotePort">Port of the target device for sending</param>
         public UDPSend(Object owner, string remoteIP, int remotePort)
-            : base(owner, remoteIP, remotePort)
-        {
-            sendQueue = new Queue<byte[]>();
+            : base(owner, remoteIP, remotePort) {
+            this.sendingTask = new ThreadInterface(SendFromQueue);
         }
 
         ~UDPSend()
         {
-            StopSending();
+            Stop();
         }
 
         ////////////////////////////////////////////////////////////////////////
         // Queue Functions.
         // Start the thread to send data.
-        public void StartSending()
+        public void Start()
         {
             // if queue not set create it.
             if (this.sendQueue == null)
                 this.sendQueue = new Queue<byte[]>();
-            sendCancellation = new CancellationTokenSource();
-            Task udpSender = Task.Run(() =>
-            {
-                while (true) SendFromQueue();
-            }, sendCancellation.Token);
+            this.sendingTask.Start();
         }
 
         // Disable Sending.
-        public void StopSending()
+        public void Stop()
         {
-            // TODO: Should we reset queue?
-            // Reset.
-            if (sendCancellation != null) sendCancellation.Cancel();
+            this.sendingTask.Stop();
             this.sendQueue = null;
         }
 
@@ -97,13 +119,8 @@ namespace HoloFab
                     {
                         currentData = this.sendQueue.Dequeue();
                     }
-                    // Peek message to send
+                    // Try to send a message to send
                     Send(currentData);
-                    //// if no exception caught and data sent successfully - remove from queue.
-                    //if (!this.flagSuccess)
-                    //	lock (this.sendQueue) {
-                    //		this.sendQueue.Enqueue(currentData);
-                    //	}
                 }
             }
             catch (Exception exception)
@@ -111,137 +128,56 @@ namespace HoloFab
                 DebugUtilities.UniversalDebug(this.sourceName,
                     "Queue Exception: " + exception.ToString(),
                     ref this.debugMessages);
-                this.flagSuccess = false;
             }
         }
-
-        ////////////////////////////////////////////////////////////////////////
-#if WINDOWS_UWP
-		// Start a connection and send given byte array.
-		private async void Send(byte[] sendBuffer) {
-			this.flagSuccess = false;
-			// Stop client if set previously.
-			if (this.client != null) {
-				this.client.Dispose();
-				this.client = null; // Good Practice?
-			}
-			try {
-				// Open new one.
-				this.client = new DatagramSocket();
-				// Write.
-				using (var stream = await this.client.GetOutputStreamAsync(new HostName(this.remoteIP),
-				                                                           this.remotePort.ToString())) {
-					using (DataWriter writer = new DataWriter(stream)) {
-						writer.WriteBytes(sendBuffer);
-						await writer.StoreAsync();
-					}
-				}
-				// Close.
-				this.client.Dispose();
-				this.client = null; // Good Practice?
-				// Acknowledge.
-#if DEBUG
-				DebugUtilities.UniversalDebug(this.sourceName, "Data Sent!", ref this.debugMessages);
-#endif
-				this.flagSuccess = true;
-				return;
-			} catch (Exception exception) {
-				// Exception.
-#if DEBUGWARNING
-				DebugUtilities.UniversalWarning(this.sourceName, "Exception: " + exception.ToString(), ref this.debugMessages);
-#endif
-			}
-		}
-		// Broadcast Message to everyone.
-		public async void Broadcast(byte[] sendBuffer) {
-			// Reset.
-			if (this.client != null) {
-				this.client.Dispose();
-				this.client = null; // Good Practice?
-			}
-			try {
-				// Open.
-				this.client = new DatagramSocket();
-				// Write.
-				using (var stream = await this.client.GetOutputStreamAsync(new HostName(UDPSend.broadcastAddress),
-				                                                           this.remotePort.ToString())) {
-					using (DataWriter writer = new DataWriter(stream)) {
-						writer.WriteBytes(sendBuffer);
-						await writer.StoreAsync();
-					}
-				}
-				// Close.
-				this.client.Dispose();
-				// Acknowledge.
-#if DEBUG
-				DebugUtilities.UniversalDebug(this.sourceName, "Broadcast Sent!", ref this.debugMessages);
-#endif
-				this.flagSuccess = true;
-				return;
-			} catch (Exception exception) {
-				// Exception.
-#if DEBUGWARNING
-				DebugUtilities.UniversalWarning(this.sourceName, "Exception: " + exception.ToString(), ref this.debugMessages);
-#endif
-			}
-		}
-#else
         ////////////////////////////////////////////////////////////////////////
         // Start a connection and send given byte array.
         private void Send(byte[] sendBuffer)
         {
+            SendUniversal("Data", this.remoteIP, sendBuffer);
+            //client = new UdpClient(this.remoteIP, this.remotePort);
+        }
+
+        // Broadcast a Message to everyone.
+        public void Broadcast(byte[] sendBuffer)
+        {
+            SendUniversal("Broadcast", IPAddress.Broadcast.ToString(), sendBuffer);
+            //client = new UdpClient(new IPEndPoint(IPAddress.Broadcast, this.remotePort));
+        }
+        // Send a Message to everyone.
+        public void SendUniversal(string sourceType, string ip, byte[] sendBuffer)
+        {
             this.flagSuccess = false;
-            //UdpClient client;
+            //// Reset.
+            //if (client != null)
+            //{
+            //    client.Close();
+            //    client = null; // Good Practice?
+            //}
             try
             {
-                client = new UdpClient(this.remoteIP, this.remotePort);
-                client.Send(sendBuffer, sendBuffer.Length);
-                client.Close();
-				DebugUtilities.UniversalDebug(this.sourceName,
-                    "Data Sent!",
+                this.client = new UdpClient(ip, this.remotePort);
+                this.client.Send(sendBuffer, sendBuffer.Length);
+                this.client.Close();
+                #if DEBUG
+                DebugUtilities.UniversalDebug(this.sourceName,
+                    sourceType + " Sent!",
                     ref this.debugMessages);
+                #endif
                 this.flagSuccess = true;
                 return;
             }
             catch (Exception exception)
             {
-#if DEBUGWARNING
+                string exceptionName = "OtherException";
+                #if DEBUGWARNING
                 DebugUtilities.UniversalWarning(this.sourceName,
-                    "Exception: " + exception.ToString(),
+                    "Exception: " + sourceType + ": " + exceptionName +  ": " + exception.ToString(),
                     ref this.debugMessages);
-#endif
+                #endif
             }
+            QueueUpData(sendBuffer);
         }
-
-        // Broadcast Message to everyone.
-        public void Broadcast(byte[] sendBuffer)
-        {
-            // Reset.
-            if (client != null)
-            {
-                client.Close();
-                client = null; // Good Practice?
-            }
-            try
-            {
-                client = new UdpClient(new IPEndPoint(IPAddress.Broadcast, this.remotePort));
-                client.Send(sendBuffer, sendBuffer.Length);
-                client.Close();
-                DebugUtilities.UniversalDebug(this.sourceName,
-                    "Broadcast Sent!",
-                    ref this.debugMessages);
-                flagSuccess = true;
-                return;
-            }
-            catch (Exception exception)
-            {
-#if DEBUGWARNING
-                DebugUtilities.UniversalWarning(this.sourceName,
-                    "Exception: " + exception.ToString(),
-                    ref this.debugMessages);
-#endif
-            }
-        }
-#endif
+        */
     }
 }

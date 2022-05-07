@@ -8,28 +8,46 @@ namespace HoloFab
     {
 #if !(UNITY_EDITOR || UNITY_ANDROID || UNITY_IOS || WINDOWS_UWP)  // WHAT DOES THE FUCK?
         // A struct holding network info for other components.
-        public class Connection
+        public class HoloConnection
         {
             public string remoteIP;
             public bool status;
 
-            public TCPAgent tcpAgent;
-
             // UDP Connections List for tracking
-            private List<UDPAgent> udpTasksList = new List<UDPAgent>();
+            private List<NetworkAgent> networkAgents = new List<NetworkAgent>();
 
+            public bool MessagesAvailable{
+                get {
+                    return false;
+                }
+            }
             
-            public Connection(string remoteIP)
+            public HoloConnection(string remoteIP)
             {
                 this.remoteIP = remoteIP;
-                status = false;
+                this.status = false;
+
+
             }
 
-            ~Connection()
-            {
-                Disconnect();
+            ~HoloConnection() { 
+                //Disconnect();
             }
+            //////////////////////////////////////////////////////////////////////////////
+            public bool Connect() {
+                return true;
+            }
+            public void Disconnect() { }
+            //////////////////////////////////////////////////////////////////////////////
+            
+            public void QueueUpData(SourceType sourceType, byte[] data) { 
+            }
+            public string LastMessage() { 
+                return string.Empty;
+            }
+            //////////////////////////////////////////////////////////////////////////////
 
+            /*
             /// <summary>
             /// Connect the TCP Agent if not already connected
             /// </summary>
@@ -37,15 +55,16 @@ namespace HoloFab
             public bool SafeConnect()
             {
                 // Check if connection is Alive
-                if (tcpAgent != null)
-                {
-                    if (tcpAgent.PingConnection())
+                foreach(TCPAgent agent in this.tcpAgents)
+                    if (agent != null)
                     {
-                        return true;
+                       // if (this.tcpAgent.PingConnection())
+                        //{
+                        //    return true;
+                        //}
                     }
-                }
                 Disconnect();
-                tcpAgent = new TCPAgent(this.remoteIP);
+                this.tcpAgent = new TCPAgent(this, this.remoteIP);
                 return Connect();
             }
 
@@ -61,7 +80,7 @@ namespace HoloFab
             /// </summary>
             public void Disconnect()
             {
-                if (tcpAgent != null)
+                if (this.tcpAgent != null)
                 {
                     this.tcpAgent.Disconnect();
                     this.tcpAgent = null;
@@ -77,14 +96,6 @@ namespace HoloFab
                 }
             }
 
-            // MOVE TO NETWORKUTILITIES . . . ?
-            public void TransmitIP()
-            {
-                // Send local IPAddress for device to communicate back.
-                byte[] bytes = EncodeUtilities.EncodeData("IPADDRESS", NetworkUtilities.LocalIPAddress(), out _);
-                //this.udpSender.QueueUpData(bytes);
-                //bool success = connect.udpSender.flagSuccess;
-            }
 
             // Make a new UDPSend Task and return the QueueUpData function;
             public UDPSend UdpSend(Object owner, int remotePort)
@@ -116,7 +127,7 @@ namespace HoloFab
 
             ////////////////////////////////////////////////////////////////////
 
-            public UDPRecv UdpRecv(Object owner, int port)
+            public UDPReceive UdpRecv(Object owner, int port)
             {
                 //foreach (UDPSend agent in udpRecvTasks)
                 //{
@@ -125,7 +136,7 @@ namespace HoloFab
                 //        return agent;
                 //    }
                 //}
-                UDPRecv udpRecv = new UDPRecv(owner, remoteIP, port);
+                UDPReceive udpRecv = new UDPReceive(owner, remoteIP, port);
                 udpRecv.StartListening();
                 udpTasksList.Add(udpRecv);
                 return udpRecv;
@@ -133,7 +144,7 @@ namespace HoloFab
 
             public void StopUdpRecv(Object owner)
             {
-                foreach (UDPRecv agent in udpTasksList)
+                foreach (UDPReceive agent in udpTasksList)
                 {
                     if (agent.owner == owner)
                     {
@@ -142,6 +153,7 @@ namespace HoloFab
                     }
                 }
             }
+            */
         }
 #endif
     }

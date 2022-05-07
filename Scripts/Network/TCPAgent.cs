@@ -1,6 +1,6 @@
-﻿// #define DEBUG
+﻿#define DEBUG
 #define DEBUGWARNING
-#undef DEBUG
+// #undef DEBUG
 // #undef DEBUGWARNING
 
 using System;
@@ -10,28 +10,119 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace HoloFab
-{
+namespace HoloFab {
+    // TCP agent.
+    public partial class TCPAgent : NetworkAgent {
+
+        // Network Objects:
+        protected override string sourceName {
+            get{
+                return "TCP Agent Interface";
+            }
+        }
+        protected TcpClient _client;
+        internal NetworkStream stream;
+        protected override object client => _client;
+
+        public TCPAgent(object _owner, string _remoteIP, int _remotePort = 12121, bool _sendingEnabled = false, bool _receivingEnabled = false) :
+            base(_owner, _remoteIP, _remotePort, _sendingEnabled, _receivingEnabled)
+        { }
+
+        // Delay in milliseconds to check the connection.
+        internal readonly uint delayForConnection = 2000;
+        // Size of buffer to try to read at once.
+        internal readonly uint bufferSize = 8192;
+
+        ////////////////////////////////////////////////////////////////////////
+        //----------------------<Connection_Management>----------------------//
+        ////////////////////////////////////////////////////////////////////////
+        /// <summary>
+        /// Connect the TCP Agent to the End-Point and Start the Sending and
+        /// Receiving threads.
+        /// </summary>
+        /// <returns></returns>
+        public override bool Connect() {
+            // Reset Connection just in case
+            Disconnect();
+            this.client = new TcpClient();
+            try{
+                // Open.
+                // NB! Blocking should parallelize?
+                if (!this._client.ConnectAsync(this.remoteIP,
+                    this.remotePort).Wait(TimeSpan.FromMilliseconds(this.delayForConnection))) {
+                    // connection failure
+                    this.flagConnected = false;
+                    return false;
+                }
+                this.stream = ((TcpClient)this.client).GetStream();
+                this.flagConnected = true;
+                // Acknowledge.
+                #if DEBUG
+                DebugUtilities.UniversalDebug(this.sourceName,
+                    "Connection Stablished!",
+                    ref this.debugMessages);
+                #endif
+                return true;
+            }
+            catch (Exception exception) {
+                string exceptionName;
+                if (exception is ArgumentNullException)
+                    exceptionName = "ArgumentNullException";
+                else if (exception is SocketException)
+                    exceptionName = "SocketException";
+                else exceptionName = "Exception";
+                #if DEBUGWARNING
+                DebugUtilities.UniversalWarning(this.sourceName,
+                    exceptionName + exception.ToString(),
+                    ref this.debugMessages);
+                #endif
+                this.flagConnected = false;
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Disconnect the TCP Agent and remove the stream and client.
+        /// </summary>
+        public override void Disconnect() {
+            // Reset.
+            if (this._client != null) {
+                this._client.Close();
+                this._client = null;
+            }
+            if (this.stream != null) {
+                this.stream.Close();
+                this.stream = null; // Good Practice? Guess not, already fucked me twice . . .
+            }
+            this.flagConnected = false;
+            #if DEBUG
+            DebugUtilities.UniversalDebug(this.sourceName,
+                "Disconnected.",
+                ref this.debugMessages);
+            #endif
+        }
+    }
+    # if TEST
     // TCP sender.
     public class TCPAgent
     {
         // An IP and a port for TCP communication to send to.
-        public string remoteIP;
-        private int remotePort;
-        public bool flagSuccess = false;
-        public bool flagConnected = false;
+        //public string remoteIP;
+        //private int remotePort;
+        //public bool flagSuccess = false;
+        //public bool flagConnected = false;
 
         // Network Objects:
-#if WINDOWS_UWP
-		private readonly string sourceName = "TCP Send Interface UWP";
-#else
-        private readonly string sourceName = "TCP Send Interface";
-        // Connection Object Reference.
-        private TcpClient client;
-        private NetworkStream stream;
-#endif
-        // History:
-        public List<string> debugMessages = new List<string>();
+//#if WINDOWS_UWP
+//		private readonly string sourceName = "TCP Send Interface UWP";
+//#else
+//        private readonly string sourceName = "TCP Send Interface";
+//        // Connection Object Reference.
+//        private TcpClient client;
+//        private NetworkStream stream;
+//#endif
+        //// History:
+        //public List<string> debugMessages = new List<string>();
 
         // Thread Object Reference.
         //ThreadInterface sender;
@@ -56,16 +147,16 @@ namespace HoloFab
         /// </summary>
         /// <param name="remoteIP"></param>
         /// <param name="remotePort"></param>
-        public TCPAgent(string remoteIP, int remotePort = 11111)
-        {
-            this.remoteIP = remoteIP;
-            this.remotePort = remotePort;
-            this.debugMessages = new List<string>();
-            //this.sender = new ThreadInterface();
-            //this.sender.threadAction = SendFromQueue;
-            //Reset.
-            //Disconnect();
-        }
+        //public TCPAgent(string remoteIP, int remotePort = 11111)
+        //{
+        //    this.remoteIP = remoteIP;
+        //    this.remotePort = remotePort;
+        //    this.debugMessages = new List<string>();
+        //    //this.sender = new ThreadInterface();
+        //    //this.sender.threadAction = SendFromQueue;
+        //    //Reset.
+        //    //Disconnect();
+        //}
 
         ~TCPAgent()
         {
@@ -403,16 +494,5 @@ namespace HoloFab
             if (handler != null) DataReceived(this, e);  // re-raise event
         }
     }
-
-    // DataReceivedArg class to be used along with this class
-    // Not an internal class since it needs to be public
-    // Only used with this class, so not in a utilities file
-    public class DataReceivedArgs : EventArgs
-    {
-        public DataReceivedArgs(string data)
-        {
-            Data = data;
-        }
-        public string Data { get; set; }
-    }
+    #endif
 }

@@ -11,16 +11,12 @@ namespace HoloFab
 {
     namespace CustomData
     {
-        class ThreadInterface
-        {
+        public class ThreadInterface {
             public string sourceName = "Thread Intrface";
 
-			// Task Object Reference.
+			// Task Object References.
 			private CancellationTokenSource cancellation;
 			private Task task;
-
-            // Thread Object Reference.
-            //private Thread task = null;
 
             // History:
             // - Debug History.
@@ -30,7 +26,17 @@ namespace HoloFab
             // Action Type to check if loop should break.
             public delegate bool LoopConditionCheck();
             // Actiual Action for loop checking to be overriden.
-            //public LoopConditionCheck checkCondition = CheckLoopCondition;
+            public LoopConditionCheck checkCondition;
+            // delay between each loop execution in milliseconds
+            public int delayInTask;
+
+            public ThreadInterface(Action _threadAction, int _delayInTask=0, LoopConditionCheck _checkCondition=null) { 
+                this.threadAction = _threadAction;
+                this.delayInTask = _delayInTask;
+                if (_checkCondition == null)
+                    _checkCondition = CheckLoopCondition;
+                this.checkCondition = _checkCondition;
+            }
 
             //////////////////////////////////////////////////////////////////////////
 
@@ -40,11 +46,8 @@ namespace HoloFab
                     // Start the thread.
                     this.cancellation = new CancellationTokenSource();
                     this.task = Task.Run(() => {
-                        while (true) {
-                            this.threadAction();
-                            }
+                        ThreadLoop();
                     }, this.cancellation.Token);
-					//this.task.Start();
 #if DEBUG
 					DebugUtilities.UniversalDebug(this.sourceName, "Thread Started.", ref this.debugMessages);
 #endif
@@ -63,48 +66,21 @@ namespace HoloFab
 				}
 			}
 
-//            public void Start()
-//            {
-//                if ((this.threadAction != null) && (this.task == null))
-//                {
-//                    this.debugMessages = new List<string>();
-//                    // Start the thread.
-//                    this.task = new Thread(new ThreadStart(ThreadLoop));
-//                    this.task.IsBackground = true;
-//                    this.task.Start();
-//#if DEBUG
-//                    DebugUtilities.UniversalDebug(this.sourceName, "Thread Started.", ref this.debugMessages);
-//#endif
-//                }
-//            }
-//            public void Stop()
-//            {
-//                // Reset.
-//                if (this.task != null)
-//                {
-//                    this.task.Abort();
-//                    this.task = null;
-//#if DEBUG
-//                    DebugUtilities.UniversalDebug(this.sourceName, "Stopping Thread.", ref this.debugMessages);
-//#endif
-//                }
-//            }
 
-
-            //// Default Check to run on Loop - infinite loop
-            //public static bool CheckLoopCondition()
-            //{
-            //    return true;
-            //}
+            // Default Check to run on Loop - infinite loop
+            public static bool CheckLoopCondition()
+            {
+                return true;
+            }
 
             // Infinite Loop Executing set function.
             public void ThreadLoop()
             {
                 if (this.threadAction != null)
                 {
-                    while (true)
-                    {// this.checkCondition()) {
+                    while (this.checkCondition()) {
                         this.threadAction();
+					    this.task.Wait(this.delayInTask);
                     }
                 }
             }

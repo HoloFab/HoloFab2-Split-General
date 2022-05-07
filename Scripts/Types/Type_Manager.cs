@@ -1,3 +1,4 @@
+#if UNITY_ANDROID || WINDOWS_UWP || UNITY_EDITOR
 using System;
 using System.Collections.Generic;
 
@@ -17,3 +18,4 @@ namespace HoloFab {
 		}
 	}
 }
+#endif
