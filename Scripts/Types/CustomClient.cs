@@ -8,18 +8,11 @@ namespace HoloFab {
 			public string remoteIP;
 			public string name;
 			public DateTime lastCall { get; set; }
-			public HoloFab.ClientUpdater updater;
             
 			public HoloDevice(string _address, string _name) {
 				this.remoteIP = _address;
 				this.name = _name;
 				this.lastCall = DateTime.Now;
-				this.updater = new HoloFab.ClientUpdater(this, this.remoteIP);
-				this.updater.StartSending();
-			}
-			~HoloDevice(){
-				this.updater.StopSending();
-				this.updater.Disconnect();
 			}
 			// Encode information into String.
 			public override string ToString(){
