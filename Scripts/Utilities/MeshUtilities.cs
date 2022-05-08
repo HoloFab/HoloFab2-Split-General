@@ -67,6 +67,20 @@ namespace HoloFab {
 			mesh.RecalculateNormals();
 			return mesh;
 		}
+		// Encode a Mesh.
+		public static MeshData EncodeMesh(Mesh _mesh) {
+			MeshData meshData = new MeshData();
+            
+			for (int i = 0; i < _mesh.vertexCount; i++) {
+				meshData.vertices.Add(EncodeUtilities.EncodeLocation(_mesh.vertices[i]));
+			}
+            
+			for (int i = 0; i < _mesh.triangles.Length; i+=3) {
+				meshData.faces.Add(new int[] { 0, _mesh.triangles[i], _mesh.triangles[i+1], _mesh.triangles[i+2] });
+			}
+            
+			return meshData;
+		}
 		#endif
 		#endregion
 	}

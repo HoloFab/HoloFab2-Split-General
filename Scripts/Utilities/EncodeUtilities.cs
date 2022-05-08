@@ -7,6 +7,8 @@ using Newtonsoft.Json;
 #if !(UNITY_EDITOR || UNITY_ANDROID || UNITY_IOS || WINDOWS_UWP)
 using System.Drawing;
 using Rhino.Geometry;
+#else
+using UnityEngine;
 #endif
 
 using HoloFab;
@@ -29,22 +31,22 @@ namespace HoloFab {
 			message += EncodeUtilities.messageSplitter; // End Message Char
 			return Encoding.UTF8.GetBytes(message);
 		}
-		public static byte[] EncodeIP() {
-			return EncodeUtilities.EncodeData("IPADDRESS", NetworkUtilities.LocalIPAddress(), out _);
-		}
-
+		// public static byte[] EncodeIP() {
+		// 	return EncodeUtilities.EncodeData("IPADDRESS", NetworkUtilities.LocalIPAddress(), out _);
+		// }
+        
 		// If message wasn't stripped - remove the message splitter
 		public static string StripSplitter(string message){
 			if (message.EndsWith(EncodeUtilities.messageSplitter))
 				return message.Substring(0, message.Length - 1);
 			return message;
 		}
-
+        
 		// Decode Data into a string.
 		public static string DecodeData(byte[] data) {
 			return Encoding.UTF8.GetString(data);
 		}
-
+        
 		// Decode Data into a string.
 		public static string DecodeData(byte[] data, int index, int count) {
 			return Encoding.UTF8.GetString(data, index, count);
@@ -52,7 +54,7 @@ namespace HoloFab {
 		#endregion
 		//////////////////////////////////////////////////////////////////////////////
 		#region RhinoOnly
-#if !(UNITY_EDITOR || UNITY_ANDROID || UNITY_IOS || WINDOWS_UWP)
+		#if !(UNITY_EDITOR || UNITY_ANDROID || UNITY_IOS || WINDOWS_UWP)
 		public static double[] EncodePlane(Plane _plane) {
 			Quaternion quaternion = new Quaternion();
 			quaternion.SetRotation(Plane.WorldXY, _plane);
@@ -90,8 +92,17 @@ namespace HoloFab {
 		public static LabelData InterpreteLabel(string data){
 			return JsonConvert.DeserializeObject<LabelData>(data);
 		}
-		public static string InterpreteIPAddress(string data){
-			return data.Replace("\"", string.Empty);
+		// public static string InterpreteIPAddress(string data){
+		// 	return data.Replace("\"", string.Empty);
+		// }
+		public static HoloSystemState InterpreteHoloState(string data){
+			return JsonConvert.DeserializeObject<HoloSystemState>(data);
+		}
+		// Encode a Location.
+		public static float[] EncodeLocation(Vector3 _point){
+			return new float[] {(float)Math.Round(_point.x/1000.0,3),
+					            (float)Math.Round(_point.z/1000.0,3),
+					            (float)Math.Round(_point.y/1000.0,3)};
 		}
 		#endif
 		#endregion

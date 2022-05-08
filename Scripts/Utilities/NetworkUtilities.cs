@@ -30,5 +30,13 @@ namespace HoloFab {
 			#endif
 			return localIP;
 		}
+        
+		public static string BroadcastIP(){
+			#if WINDOWS_UWP
+			return string.Empty();
+			#else
+			return IPAddress.Broadcast.ToString();
+			#endif
+		}
 	}
 }
