@@ -1,6 +1,10 @@
 using System;
 using System.Collections.Generic;
 
+#if !(UNITY_EDITOR || UNITY_ANDROID || UNITY_IOS || WINDOWS_UWP) 
+using Grasshopper.Kernel;
+#endif
+
 namespace HoloFab
 {
     // Structure to hold Custom data types holding data to be sent.
@@ -13,8 +17,11 @@ namespace HoloFab
             public string remoteIP;
             public bool status;
 
+            public GH_Component owner;
+            private ClientUpdater clientUpdater;
+
             // UDP Connections List for tracking
-            private List<NetworkAgent> networkAgents = new List<NetworkAgent>();
+            private Dictionary<int,NetworkAgent> networkAgents = new Dictionary<int, NetworkAgent>();
 
             public bool MessagesAvailable{
                 get {
@@ -22,25 +29,78 @@ namespace HoloFab
                 }
             }
             
-            public HoloConnection(string remoteIP)
-            {
+            public HoloConnection(GH_Component owner, string remoteIP){
+                this.owner = owner;
                 this.remoteIP = remoteIP;
                 this.status = false;
-
-
             }
 
             ~HoloConnection() { 
-                //Disconnect();
+                Disconnect();
+            }
+
+            public void RefreshOwner() {
+                this.owner.ExpireSolution(true);
             }
             //////////////////////////////////////////////////////////////////////////////
             public bool Connect() {
+                SetupUpdate();
+                foreach (NetworkAgent agent in this.networkAgents.Values) {
+                    agent.Connect();
+                    agent.StartSending();
+                    agent.StartReceiving();
+                }
+                this.clientUpdater.UpdateDevice();
                 return true;
             }
-            public void Disconnect() { }
+            public void Disconnect() {
+                foreach (NetworkAgent agent in this.networkAgents.Values) {
+                    agent.StopSending();
+                    agent.StopReceiving();
+                    agent.Disconnect();
+                }
+                this.networkAgents.Clear();
+                this.clientUpdater = null;
+            }
             //////////////////////////////////////////////////////////////////////////////
+            void SetupUpdate() {
+                // check if invalid updater is present.
+                if ((this.clientUpdater != null) && (this.clientUpdater.IP != this.remoteIP)) {
+                    this.clientUpdater.StopSending();
+                    this.clientUpdater.Disconnect();
+                    this.clientUpdater = null;
+                }
+                // Create new updater if needed
+                if (this.clientUpdater == null) {
+                    HoloComponent component = new HoloComponent(SourceType.UDP, SourceCommunicationType.Sender, 8889);
+                    this.clientUpdater = new ClientUpdater(this.owner, remoteIP);
+                    if (this.networkAgents.ContainsKey(component.id))
+                        this.networkAgents[component.id] = (NetworkAgent)this.clientUpdater;
+                    else
+                        this.networkAgents.Add(component.id, (NetworkAgent)this.clientUpdater);
+                }
+                
+            }
             
-            public void QueueUpData(SourceType sourceType, byte[] data) { 
+            public int RegisterAgent(SourceType _sourceType, SourceCommunicationType _sourceCommunicationType) {
+                HoloComponent component = new HoloComponent(_sourceType, _sourceCommunicationType);
+                if (!this.clientUpdater.ContainsID(component.id)){
+                    this.clientUpdater.RegisterAgent(component);
+                    NetworkAgent agent = component.ToNetworkAgent(this.owner, this.remoteIP);
+                    if (this.networkAgents.ContainsKey(component.id))
+                        this.networkAgents[component.id] = agent;
+                    else
+                        this.networkAgents.Add(component.id, agent);
+                    agent.Connect();
+                    agent.StartSending();
+                    agent.StartReceiving();
+                }
+
+                return component.id;
+            }
+            //////////////////////////////////////////////////////////////////////////////
+            public void QueueUpData(int componentID, byte[] data) {
+                this.networkAgents[componentID]?.QueueUpData(data);
             }
             public string LastMessage() { 
                 return string.Empty;

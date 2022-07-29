@@ -73,7 +73,7 @@ namespace HoloFab {
 				if (this.taskAction != null) {
 					while (this.checkCondition()) {
 						this.taskAction();
-						this.task.Wait(this.delayInTask);
+						this.task?.Wait(this.delayInTask);
 					}
 				}
 			}

@@ -93,7 +93,16 @@ namespace HoloFab {
 		// Queue of buffers to send.
 		protected Queue<byte[]> sendQueue = new Queue<byte[]>();
 		// Accessor to check if there is data in queue
-		public bool IsNotEmpty { get { return this.sendQueue.Count > 0; } }
+		public bool IsNotEmpty {
+			get	{
+				if (this.sendQueue == null)
+					return false;
+				else
+					lock (this.sendQueue) { 
+						return this.sendQueue.Count > 0; 
+					}
+			}
+		}
         
 		protected void InitializeSending() {
 			if (this.sendingEnabled)
