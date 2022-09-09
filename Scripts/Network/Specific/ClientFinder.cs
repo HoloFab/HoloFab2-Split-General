@@ -22,8 +22,8 @@ namespace HoloFab {
         
 		private TaskInterface deviceUpdater;
         
-		public ClientFinder() :
-			                  base(_owner: null, _port: 8888){
+		public ClientFinder(object owner) :
+			                  base(_owner: owner, _port: 8888){
 			this.OnDataReceived += OnDeviceReceived;
             
 			this.deviceUpdater = new TaskInterface(UpdateDevices, _delayInTask: 1000);
@@ -75,6 +75,7 @@ namespace HoloFab {
 						for (int i = removeList.Count - 1; i>=0; i--)
 							this.devices.Remove(removeList[i]);
 						Instances.InvalidateCanvas();
+						((HoloConnect)this.owner).ExpireSolution(true);
 					}
 				} catch { }
 			}

@@ -61,6 +61,7 @@ namespace HoloFab
                 }
                 this.networkAgents.Clear();
                 this.clientUpdater = null;
+                this.status = false;
             }
             //////////////////////////////////////////////////////////////////////////////
             void SetupUpdate() {
@@ -87,20 +88,26 @@ namespace HoloFab
                 if (!this.clientUpdater.ContainsID(component.id)){
                     this.clientUpdater.RegisterAgent(component);
                     NetworkAgent agent = component.ToNetworkAgent(this.owner, this.remoteIP);
-                    if (this.networkAgents.ContainsKey(component.id))
-                        this.networkAgents[component.id] = agent;
-                    else
-                        this.networkAgents.Add(component.id, agent);
-                    agent.Connect();
-                    agent.StartSending();
-                    agent.StartReceiving();
-                }
+                    bool success = agent.Connect();
+                    if (success) { 
+                        agent.StartSending();
+                        agent.StartReceiving();
 
+                        if (this.networkAgents.ContainsKey(component.id))
+                            this.networkAgents[component.id] = agent;
+                        else
+                            this.networkAgents.Add(component.id, agent);
+                    } else {
+                        Disconnect();
+                        return -1;
+                    }
+                }
                 return component.id;
             }
             //////////////////////////////////////////////////////////////////////////////
             public void QueueUpData(int componentID, byte[] data) {
-                this.networkAgents[componentID]?.QueueUpData(data);
+                if (this.networkAgents.ContainsKey(componentID))
+                    this.networkAgents[componentID]?.QueueUpData(data);
             }
             public string LastMessage() { 
                 return string.Empty;

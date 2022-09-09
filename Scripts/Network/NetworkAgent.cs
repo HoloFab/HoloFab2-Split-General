@@ -95,12 +95,12 @@ namespace HoloFab {
 		// Accessor to check if there is data in queue
 		public bool IsNotEmpty {
 			get	{
-				if (this.sendQueue == null)
-					return false;
-				else
+				bool status = false;
+				if (this.sendQueue != null)
 					lock (this.sendQueue) { 
-						return this.sendQueue.Count > 0; 
+						status = this.sendQueue.Count > 0; 
 					}
+				return status;
 			}
 		}
         
@@ -125,9 +125,10 @@ namespace HoloFab {
 		// Enqueue data.
 		public void QueueUpData(byte[] newData) {
 			if (this.sendingEnabled)
-				lock (this.sendQueue) {
-					this.sendQueue.Enqueue(newData);
-				}
+				if (this.sendQueue != null)
+					lock (this.sendQueue) {
+						this.sendQueue.Enqueue(newData);
+					}
 		}
 		// Check the queue and try send it.
 		private void SendFromQueue() {
