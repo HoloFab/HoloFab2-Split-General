@@ -25,39 +25,40 @@ namespace HoloFab {
 			int startIndex = 0, endIndex = 0, dataLength;
             
 			try {
-				do {
-					// Receive Bytes.
-					dataLength = this.stream.Read(data, 0, data.Length);
-					// If buffer not empty - decode it.
-					message = EncodeUtilities.DecodeData(data).Trim();
-					if (!string.IsNullOrEmpty(message)) {
-						fullMessage += message;
-                        
-						// Raise Events
-						startIndex = 0;
-						while (fullMessage.Contains(EncodeUtilities.messageSplitter)) {
-							endIndex = fullMessage
-							           .IndexOf(EncodeUtilities.messageSplitter, startIndex);
-							//if (endIndex == -1) endIndex = fullMessage.Length-1;
-							message = fullMessage.Substring(startIndex, endIndex-startIndex);
-							RaiseDataReceived(this.IP, message);
-							#if DEBUG
-							DebugUtilities.UniversalDebug(this.sourceName,
-							                              "Reading Data: " + message,
-							                              ref this.debugMessages);
-							#endif
-							startIndex = endIndex+1;
+				if (this.flagConnected) //IsConnected
+					do {
+						// Receive Bytes.
+						dataLength = this.stream.Read(data, 0, data.Length);
+						// If buffer not empty - decode it.
+						message = EncodeUtilities.DecodeData(data).Trim();
+						if (!string.IsNullOrEmpty(message)) {
+							fullMessage += message;
+                            
+							// Raise Events
+							startIndex = 0;
+							while (fullMessage.Contains(EncodeUtilities.messageSplitter)) {
+								endIndex = fullMessage
+								           .IndexOf(EncodeUtilities.messageSplitter, startIndex);
+								//if (endIndex == -1) endIndex = fullMessage.Length-1;
+								message = fullMessage.Substring(startIndex, endIndex-startIndex);
+								RaiseDataReceived(this.IP, message);
+								#if DEBUG
+								DebugUtilities.UniversalDebug(this.sourceName,
+								                              "Reading Data: " + message,
+								                              ref this.debugMessages);
+								#endif
+								startIndex = endIndex+1;
+							}
+							fullMessage = fullMessage.Substring(startIndex, fullMessage.Length-startIndex);
 						}
-						fullMessage = fullMessage.Substring(startIndex, fullMessage.Length-startIndex);
-					}
-				}while (this.stream.DataAvailable);
-			} catch (Exception exception)   {
+					}while (this.stream.DataAvailable);
+			} catch (Exception exception) {
 				#if DEBUGWARNING
 				DebugUtilities.UniversalWarning(this.sourceName,
 				                                "Exception: " + exception.ToString(),
 				                                ref this.debugMessages);
 				#endif
-				Disconnect();
+				//Disconnect();
 			}
 		}
 		#endregion

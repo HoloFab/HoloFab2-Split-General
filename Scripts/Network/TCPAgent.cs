@@ -5,10 +5,14 @@
 
 using System;
 using System.Collections.Generic;
-using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+
+using System.Net;
+using System.Net.Sockets;
+
+using HoloFab.CustomData;
 
 namespace HoloFab {
 	// TCP agent.
@@ -24,9 +28,16 @@ namespace HoloFab {
 		internal NetworkStream stream;
 		protected override object client => _client;
         
-		public TCPAgent(object _owner, string _IP, int _port = 12121, bool _sendingEnabled = false, bool _receivingEnabled = false) :
-			                                                                                                                        base(_owner, _IP, _port, _sendingEnabled, _receivingEnabled)
-		{ }
+		public enum AgentType {Server, Client}
+		protected AgentType agentType;
+		// Client Specific objects
+		protected TcpListener listener;
+		protected TaskInterface clientListener;
+        
+		public TCPAgent(object _owner, string _IP, int _port = 12121, AgentType _agentType = AgentType.Server, bool _sendingEnabled = true, bool _receivingEnabled = true) :
+			                                                                                                                                                               base(_owner, _IP, _port, _sendingEnabled, _receivingEnabled) {
+			this.agentType = _agentType;
+		}
         
 		// Delay in milliseconds to check the connection.
 		internal readonly uint delayForConnection = 2000;
@@ -42,9 +53,20 @@ namespace HoloFab {
 		/// </summary>
 		/// <returns></returns>
 		public override bool Connect() {
+			// TODO shouldn't return cause some is async
+			switch (this.agentType) {
+			 case AgentType.Client:
+				 return Client_Connect();
+			 case AgentType.Server:
+			 default:
+				 return Server_Connect();
+			}
+		}
+        
+		public bool Server_Connect(){
 			// Reset Connection just in case
 			Disconnect();
-			this.client = new TcpClient();
+			this._client = new TcpClient();
 			try {
 				// Open.
 				// NB! Blocking should parallelize?
@@ -80,10 +102,75 @@ namespace HoloFab {
 			}
 		}
         
+		public bool Client_Connect(){
+			IPEndPoint anyIP = new IPEndPoint(IPAddress.Any, this.port);
+			this.listener = new TcpListener(anyIP);
+			this.listener.Start();
+			this.clientListener = new TaskInterface(Client_WaitForConnection, _taskName: "TCP Agent Client Listener");
+			this.clientListener.Start();
+			return true;
+		}
+		public void Client_WaitForConnection(){
+			if (!this.IsConnected) {
+				#if DEBUG
+				DebugUtilities.UniversalDebug(this.sourceName, "Listening for a Client!", ref this.debugMessages);
+				#endif
+				// Task<TcpClient> listeningSession = this.listener.AcceptTcpClientAsync();
+				// if (!listeningSession.Wait(TimeSpan.FromMilliseconds(this.delayForConnection))) {
+				// 	// connection failure
+				// 	this.flagConnected = false;
+				// } else {
+				// 	this.client = listeningSession.Result;
+				// 	this.stream = ((TcpClient)this.client).GetStream();
+				// 	this.flagConnected = true;
+				// }
+				this._client = this.listener.AcceptTcpClient();
+				if (this._client != null) {
+					#if DEBUG
+					DebugUtilities.UniversalDebug(this.sourceName, "Client Found", ref this.debugMessages);
+					#endif
+					this.stream = ((TcpClient)this.client).GetStream();
+					this.flagConnected = true;
+				} else {
+					#if DEBUG
+					DebugUtilities.UniversalDebug(this.sourceName, "Client Not Found", ref this.debugMessages);
+					#endif
+					// connection failure
+					this.flagConnected = false;
+				}
+			} else {
+				// Just in case? TODO: necessary?
+				this.flagConnected = false;
+			}
+		}
+        
 		/// <summary>
 		/// Disconnect the TCP Agent and remove the stream and client.
 		/// </summary>
 		public override void Disconnect() {
+            
+			switch (this.agentType) {
+			 case AgentType.Client:
+				 Client_Disconnect();
+				 break;
+			 case AgentType.Server:
+			 default:
+				 Server_Disconnect();
+				 break;
+			}
+		}
+		protected void Client_Disconnect(){
+			if (this.clientListener != null) {
+				this.clientListener.Stop();
+				this.clientListener = null;
+			}
+			if (this.listener != null) {
+				this.listener.Stop();
+				this.listener = null;
+			}
+			Server_Disconnect();
+		}
+		protected void Server_Disconnect(){
 			// Reset.
 			if (this._client != null) {
 				this._client.Close();
@@ -99,6 +186,40 @@ namespace HoloFab {
 			                              "Disconnected.",
 			                              ref this.debugMessages);
 			#endif
+		}
+        
+		// Check if Server Disconnected.
+		public override bool IsConnected {
+			get {
+				// TODO this is a bit ugly simplify?
+				try {
+					if (this._client != null && this._client.Client != null && this._client.Client.Connected) {
+						/* pear to the documentation on Poll:
+						 * When passing SelectMode.SelectRead as a parameter to the Poll method it will return
+						 * -either- true if Socket.Listen(Int32) has been called and a connection is pending;
+						 * -or- true if data is available for reading;
+						 * -or- true if the connection has been closed, reset, or terminated;
+						 * otherwise, returns false
+						 */
+                        
+						// Detect if client disconnected
+						if (this._client.Client.Poll(1000, SelectMode.SelectRead)) {
+							byte[] buff = new byte[1];
+							if (this._client.Client.Receive(buff, SocketFlags.Peek) == 0) {
+								// Client disconnected
+								return false;
+							} else {
+								return true;
+							}
+						}
+						return true;
+					} else {
+						return false;
+					}
+				} catch {
+					return false;
+				}
+			}
 		}
 	}
 	# if TEST
