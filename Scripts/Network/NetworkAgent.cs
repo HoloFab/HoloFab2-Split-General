@@ -106,7 +106,7 @@ namespace HoloFab {
         
 		protected void InitializeSending() {
 			if (this.sendingEnabled)
-				this.sendingTask = new TaskInterface(SendFromQueue);
+				this.sendingTask = new TaskInterface(SendFromQueue, _taskName: this.sourceName+":Sender");
 		}
 		public virtual void StartSending() {
 			if (this.sendingEnabled) {
@@ -158,7 +158,7 @@ namespace HoloFab {
         
 		protected void InitializeReceiving() {
 			if (this.receivingEnabled)
-				this.receivingTask = new TaskInterface(ReceiveData);
+				this.receivingTask = new TaskInterface(ReceiveData, _taskName: this.sourceName+":Receiver");
 		}
 		public virtual void StartReceiving() {
 			if (this.receivingEnabled)

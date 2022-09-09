@@ -24,13 +24,16 @@ namespace HoloFab {
 			public LoopConditionCheck checkCondition;
 			// delay between each loop execution in milliseconds
 			public int delayInTask;
+			// Identifier of the task.
+			public string taskName;
             
-			public TaskInterface(Action _taskAction, int _delayInTask=0, LoopConditionCheck _checkCondition=null) {
+			public TaskInterface(Action _taskAction, int _delayInTask=0, LoopConditionCheck _checkCondition=null, string _taskName="") {
 				this.taskAction = _taskAction;
 				this.delayInTask = _delayInTask;
 				if (_checkCondition == null)
 					_checkCondition = CheckLoopCondition;
 				this.checkCondition = _checkCondition;
+				this.taskName = _taskName;
 			}
             
 			//////////////////////////////////////////////////////////////////////////
@@ -44,7 +47,7 @@ namespace HoloFab {
 						ThreadLoop();
 					}, this.cancellation.Token);
 					#if DEBUG
-					DebugUtilities.UniversalDebug(this.sourceName, "Task Started.", ref this.debugMessages);
+					DebugUtilities.UniversalDebug(this.sourceName, "Task ["+this.taskName+"] Started.", ref this.debugMessages);
 					#endif
 				}
 			}
@@ -56,22 +59,20 @@ namespace HoloFab {
 					this.cancellation.Dispose();
 					this.task = null;     // Good Practice?
 					#if DEBUG
-					DebugUtilities.UniversalDebug(this.sourceName, "Stopping Task.", ref this.debugMessages);
+					DebugUtilities.UniversalDebug(this.sourceName, "Stopping Task ["+this.taskName+"].", ref this.debugMessages);
 					#endif
 				}
 			}
             
 			// Default Check to run on Loop - infinite loop
-			public static bool CheckLoopCondition()
-			{
+			public static bool CheckLoopCondition() {
 				return true;
 			}
             
 			// Infinite Loop Executing set function.
-			public void ThreadLoop()
-			{
+			public void ThreadLoop() {
 				if (this.taskAction != null) {
-					while (this.checkCondition()) {
+					while ((this.task != null) && this.checkCondition()) {
 						this.taskAction();
 						this.task?.Wait(this.delayInTask);
 					}

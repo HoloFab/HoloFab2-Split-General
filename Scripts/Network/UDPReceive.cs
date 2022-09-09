@@ -38,7 +38,8 @@ namespace HoloFab {
 			return true;
 		}
 		public override void Disconnect(){
-			this._client.Close();
+			if (this._client != null)
+				this._client.Close();
 		}
 		////////////////////////////////////////////////////////////////////////
 		#region RECEIVING
@@ -84,7 +85,7 @@ namespace HoloFab {
 				                                "Exception: " + exceptionName + ": " + exception.ToString(),
 				                                ref this.debugMessages);
 				#endif
-				Disconnect();
+				//Disconnect();
 			}
 		}
 		#endregion
