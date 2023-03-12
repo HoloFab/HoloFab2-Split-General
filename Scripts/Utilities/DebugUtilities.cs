@@ -20,17 +20,17 @@ namespace HoloFab {
         
 		public static void UserMessage(string message, MessageType messageType = MessageType.Normal){
 			// Unity Debugging.
-			#if WINDOWS_UWP || UNITY_EDITOR
+			#if WINDOWS_UWP || UNITY_EDITOR || UNITY_ANDROID
 			if (messageType == MessageType.Normal)
 				Debug.Log(message);
 			else if (messageType == MessageType.Warning)
 				Debug.LogWarning(message);
 			else
 				Debug.LogError(message);
-			#elif UNITY_ANDROID
+			#if UNITY_ANDROID && !UNITY_EDITOR
 			AndroidUtilities.ToastMessage(message);
-			// Grasshopper Debugging
-			#else
+			#endif
+			#else // Grasshopper Debugging
 			Console.Write(message);
 			#endif
 		}
@@ -53,11 +53,11 @@ namespace HoloFab {
 		}
         
 		public static void UniversalDebug(string source, string message, MessageType messageType = MessageType.Normal){
-			DebugUtilities.UniversalDebug("[" + DateTime.Now.ToString() + "]" + source + ": " + message, messageType);
+			DebugUtilities.UniversalDebug("[" + DateTime.Now.ToString("HH:mm:ss") + "]" + source + ": " + message, messageType);
 		}
         
 		public static void UniversalDebug(string source, string message, ref List<string> log, MessageType messageType = MessageType.Normal){
-			message = "[" + DateTime.Now.ToString() + "]" + source + ": " + message;
+			message = "[" + DateTime.Now.ToString("HH:mm:ss") + "]" + source + ": " + message;
 			log.Add(message);
 			DebugUtilities.UniversalDebug(message, messageType);
 		}

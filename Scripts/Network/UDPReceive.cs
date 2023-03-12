@@ -17,13 +17,13 @@ using HoloFab.CustomData;
 namespace HoloFab {
 	// UDP receiver.
 	public class UDPReceive : UDPAgent {
-		protected override string sourceName {
+		protected override string agentName {
 			get {
 				return "UDP Receive Interface";
 			}
 		}
-		public UDPReceive(object _owner, int _port = 8890) :
-			                                                base(_owner, _IP: null, _port, _sendingEnabled: false, _receivingEnabled: true)
+		public UDPReceive(object _owner, int _port = 8890, string _ownerName="") :
+			                                                                     base(_owner, _IP: null, _port, _sendingEnabled: false, _receivingEnabled: true, _ownerName: _ownerName)
 		{ }
 		public override bool Connect(){
 			if (!this.IsConnected) {
@@ -47,34 +47,34 @@ namespace HoloFab {
 		protected override void ReceiveData() {
 			IPEndPoint anyIP = new IPEndPoint(IPAddress.Any, 0);
 			byte[] data;
-			string fullMessage = string.Empty, message;
-			int startIndex = 0, endIndex = 0;
             
 			try {
 				// Receive Bytes.
-				Connect();
+				//Connect();
 				data = this._client.Receive(ref anyIP);
 				//Disconnect();
 				if (data.Length > 0) {
 					// If buffer not empty - decode it.
-					fullMessage = EncodeUtilities.DecodeData(data).Trim();
-					// If string not empty and not read yet - react to it.
-					if (!string.IsNullOrEmpty(fullMessage)) {
-						// Raise Events
-						do {
-							endIndex = fullMessage
-							           .IndexOf(EncodeUtilities.messageSplitter, startIndex);
-							if (endIndex == -1) endIndex = fullMessage.Length;
-							message = fullMessage.Substring(startIndex, endIndex-startIndex);
-							RaiseDataReceived(anyIP.Address.ToString(), message);
-							#if DEBUG
-							DebugUtilities.UniversalDebug(this.sourceName,
-							                              "Reading Data: " + message,
-							                              ref this.debugMessages);
-							#endif
-							startIndex = endIndex+1;
-						} while (startIndex < fullMessage.Length);
-					}
+					this.fullMessage = EncodeUtilities.DecodeData(data).Trim();
+                    
+					ExtractMessages();
+					// // If string not empty and not read yet - react to it.
+					// if (!string.IsNullOrEmpty(this.fullMessage)) {
+					// 	// Raise Events
+					// 	do {
+					// 		endIndex = this.fullMessage
+					// 		           .IndexOf(EncodeUtilities.messageSplitter, startIndex);
+					// 		if (endIndex == -1) endIndex = this.fullMessage.Length;
+					// 		message = this.fullMessage.Substring(startIndex, endIndex-startIndex);
+					// 		RaiseDataReceived(anyIP.Address.ToString(), message);
+					// 		#if DEBUG
+					// 		DebugUtilities.UniversalDebug(this.sourceName,
+					// 		                              "Reading Data: " + message,
+					// 		                              ref this.debugMessages);
+					// 		#endif
+					// 		startIndex = endIndex+1;
+					// 	} while (startIndex < this.fullMessage.Length);
+					// }
 				}
 			} catch (Exception exception) {
 				string exceptionName;

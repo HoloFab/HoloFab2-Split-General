@@ -12,6 +12,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Text;
 
 using HoloFab.CustomData;
 
@@ -21,37 +22,34 @@ namespace HoloFab {
 		#region RECEIVING
 		protected override void ReceiveData() {
 			byte[] data = new byte[this.bufferSize];
-			string fullMessage = string.Empty, message;
-			int startIndex = 0, endIndex = 0, dataLength;
+			string message;
+			int dataLength;
+			StringBuilder stringBuilder = new StringBuilder();
             
 			try {
-				if (this.flagConnected) //IsConnected
-					do {
+				if (this.IsConnected && this.stream.CanRead) {
+					while (this.stream.DataAvailable) {
 						// Receive Bytes.
 						dataLength = this.stream.Read(data, 0, data.Length);
 						// If buffer not empty - decode it.
-						message = EncodeUtilities.DecodeData(data).Trim();
-						if (!string.IsNullOrEmpty(message)) {
-							fullMessage += message;
-                            
-							// Raise Events
-							startIndex = 0;
-							while (fullMessage.Contains(EncodeUtilities.messageSplitter)) {
-								endIndex = fullMessage
-								           .IndexOf(EncodeUtilities.messageSplitter, startIndex);
-								//if (endIndex == -1) endIndex = fullMessage.Length-1;
-								message = fullMessage.Substring(startIndex, endIndex-startIndex);
-								RaiseDataReceived(this.IP, message);
-								#if DEBUG
-								DebugUtilities.UniversalDebug(this.sourceName,
-								                              "Reading Data: " + message,
-								                              ref this.debugMessages);
-								#endif
-								startIndex = endIndex+1;
-							}
-							fullMessage = fullMessage.Substring(startIndex, fullMessage.Length-startIndex);
-						}
-					}while (this.stream.DataAvailable);
+						message = EncodeUtilities.DecodeData(data);
+						message = message.Substring(0, dataLength);
+						stringBuilder.Append(message);
+						#if DEBUG2
+						DebugUtilities.UniversalDebug(this.sourceName,
+						                              "Read a part "
+						                              //+ "["+message +"],"
+						                              + " byte length: "+ dataLength
+						                              + " decoded message length: "+message.Length
+						                              + " total string length now: " + stringBuilder.Length,
+						                              ref this.debugMessages);
+						#endif
+					}
+					if (stringBuilder.Length > 0)
+						this.fullMessage += stringBuilder.ToString().Trim();
+                    
+					ExtractMessages();
+				}
 			} catch (Exception exception) {
 				#if DEBUGWARNING
 				DebugUtilities.UniversalWarning(this.sourceName,

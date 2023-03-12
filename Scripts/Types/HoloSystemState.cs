@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace HoloFab {
 	namespace CustomData {
@@ -9,6 +10,15 @@ namespace HoloFab {
 		public class HoloSystemState {
 			public string serverIP;
 			public List<HoloComponent> holoComponents;
+            
+			public bool ContainsID(int _id) {
+				return this.holoComponents.Any(component => component.id == _id);
+			}
+			public HoloComponent this[int _id] {
+				get {
+					return this.holoComponents.First(component => component.id == _id);
+				}
+			}
             
 			public HoloSystemState() {
 				this.serverIP = NetworkUtilities.LocalIPAddress();

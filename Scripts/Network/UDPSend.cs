@@ -16,13 +16,13 @@ using HoloFab.CustomData;
 namespace HoloFab {
 	// UDP sender.
 	public class UDPSend : UDPAgent {
-		protected override string sourceName {
+		protected override string agentName {
 			get {
 				return "UDP Send Interface";
 			}
 		}
-		public UDPSend(object _owner, string _IP, int _port = 8891) :
-			                                                         base(_owner, _IP: _IP, _port: _port, _sendingEnabled: true) {}
+		public UDPSend(object _owner, string _IP, int _port = 8891, string _ownerName="") :
+			                                                                              base(_owner, _IP: _IP, _port: _port, _sendingEnabled: true, _ownerName: _ownerName) {}
 		public override bool Connect(){
 			if (!this.IsConnected) {
 				try {

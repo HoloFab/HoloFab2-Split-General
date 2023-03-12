@@ -11,7 +11,7 @@ using Grasshopper;
 
 namespace HoloFab {
 	public class ClientFinder : UDPReceive {
-		protected override string sourceName {
+		protected override string agentName {
 			get {
 				return "UDP Client Finder Interface";
 			}
@@ -22,8 +22,8 @@ namespace HoloFab {
         
 		private TaskInterface deviceUpdater;
         
-		public ClientFinder(object owner) :
-			                  base(_owner: owner, _port: 8888){
+		public ClientFinder(object owner, string _ownerName="") :
+			                                                    base(_owner: owner, _port: 8888, _ownerName: _ownerName){
 			this.OnDataReceived += OnDeviceReceived;
             
 			this.deviceUpdater = new TaskInterface(UpdateDevices, _delayInTask: 1000);

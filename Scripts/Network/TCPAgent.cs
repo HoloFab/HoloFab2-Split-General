@@ -19,7 +19,7 @@ namespace HoloFab {
 	public partial class TCPAgent : NetworkAgent {
         
 		// Network Objects:
-		protected override string sourceName {
+		protected override string agentName {
 			get {
 				return "TCP Agent Interface";
 			}
@@ -34,8 +34,8 @@ namespace HoloFab {
 		protected TcpListener listener;
 		protected TaskInterface clientListener;
         
-		public TCPAgent(object _owner, string _IP, int _port = 12121, AgentType _agentType = AgentType.Server, bool _sendingEnabled = true, bool _receivingEnabled = true) :
-			                                                                                                                                                               base(_owner, _IP, _port, _sendingEnabled, _receivingEnabled) {
+		public TCPAgent(object _owner, string _IP, int _port = 12121, bool _sendingEnabled = true, bool _receivingEnabled = true, string _ownerName="", AgentType _agentType = AgentType.Server) :
+			                                                                                                                                                                                     base(_owner, _IP, _port, _sendingEnabled, _receivingEnabled, _ownerName) {
 			this.agentType = _agentType;
 		}
         

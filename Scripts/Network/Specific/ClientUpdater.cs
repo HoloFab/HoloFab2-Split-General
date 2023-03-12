@@ -13,22 +13,21 @@ using Grasshopper;
 namespace HoloFab {
 	public class ClientUpdater : UDPSend {
 		private static HoloSystemState holoState;
-		protected override string sourceName {
+		protected override string agentName {
 			get {
 				return "UDP Client Updater Interface";
 			}
 		}
 		public bool ContainsID(int _id) {
-			return ClientUpdater.holoState.holoComponents.Any(component => component.id == _id);
+			return ClientUpdater.holoState.ContainsID(_id);
 		}
-		public HoloComponent this[int _id]{
+		public HoloComponent this[int _id] {
 			get {
-				return ClientUpdater.holoState?.holoComponents.First(component => component.id == _id);
+				return ClientUpdater.holoState?[_id];
 			}
 		}
-		public ClientUpdater(object _owner, string _IP) :
-														base(_owner, _IP: _IP, _port: 8889) {
-		}
+		public ClientUpdater(object _owner, string _IP, string _ownerName="") :
+			                                                                  base(_owner, _IP: _IP, _port: 8889, _ownerName: _ownerName) {}
 		////////////////////////////////////////////////////////////////////////
 		public void UpdateDevice() {
 			byte[] data = EncodeUtilities.EncodeData("HOLOSTATE", ClientUpdater.holoState, out _);

@@ -18,9 +18,15 @@ using HoloFab.CustomData;
 namespace HoloFab {
 	public class NetworkAgent {
 		// Network Objects:
-		protected virtual string sourceName {
+		protected virtual string agentName {
 			get {
-				return "Network Agent Interface";
+				return "Genetic Network Agent";
+			}
+		}
+		protected string ownerName;
+		protected string sourceName {
+			get {
+				return this.agentName+" [" +this.ownerName+"]";
 			}
 		}
 		protected virtual object client {
@@ -41,6 +47,8 @@ namespace HoloFab {
 		public bool sendingEnabled { get; private set; }
 		public bool receivingEnabled { get; private set; }
         
+		protected string fullMessage;
+        
 		public List<string> debugMessages = new List<string>();
         
 		/// <summary>
@@ -49,7 +57,7 @@ namespace HoloFab {
 		/// <param name="owner">The class that owns the client</param>
 		/// <param name="IP">IP of the target device</param>
 		/// <param name="port">Port of the target device</param>
-		public NetworkAgent(object _owner, string _IP = null, int _port = 0, bool _sendingEnabled = false, bool _receivingEnabled=false) {
+		public NetworkAgent(object _owner, string _IP = null, int _port = 0, bool _sendingEnabled = false, bool _receivingEnabled=false, string _ownerName="") {
 			this.owner = _owner;
 			this.IP = _IP;
 			this.port = _port;
@@ -61,6 +69,8 @@ namespace HoloFab {
             
 			this.sendingEnabled = _sendingEnabled;
 			this.receivingEnabled = _receivingEnabled;
+            
+			this.ownerName = _ownerName;
             
 			InitializeSending();
 			InitializeReceiving();
@@ -94,11 +104,11 @@ namespace HoloFab {
 		protected Queue<byte[]> sendQueue = new Queue<byte[]>();
 		// Accessor to check if there is data in queue
 		public bool IsNotEmpty {
-			get	{
+			get {
 				bool status = false;
 				if (this.sendQueue != null)
-					lock (this.sendQueue) { 
-						status = this.sendQueue.Count > 0; 
+					lock (this.sendQueue) {
+						status = this.sendQueue.Count > 0;
 					}
 				return status;
 			}
@@ -161,8 +171,10 @@ namespace HoloFab {
 				this.receivingTask = new TaskInterface(ReceiveData, _taskName: this.sourceName+":Receiver");
 		}
 		public virtual void StartReceiving() {
-			if (this.receivingEnabled)
+			if (this.receivingEnabled) {
+				this.fullMessage = string.Empty;
 				this.receivingTask.Start();
+			}
 		}
 		public virtual void StopReceiving() {
 			if (this.receivingEnabled)
@@ -174,6 +186,33 @@ namespace HoloFab {
 			var temp = OnDataReceived;
 			if (temp != null)
 				temp(this, new DataReceivedArgs(source, data));
+		}
+		protected void ExtractMessages(){
+			// Extract parts and raise Events
+			string partialMessage;
+			int endIndex = 0;
+            
+			while ((this.fullMessage.Length > 1) && this.fullMessage.Contains(EncodeUtilities.messageSplitter)) {
+				endIndex = this.fullMessage.IndexOf(EncodeUtilities.messageSplitter, 0);
+				#if DEBUG2
+				DebugUtilities.UniversalDebug(this.sourceName,
+				                              "Partial message: " + endIndex + " out of " + fullMessage.Length,
+				                              ref this.debugMessages);
+				#endif
+				partialMessage = this.fullMessage.Substring(0, endIndex);
+				this.fullMessage = this.fullMessage.Substring(endIndex+1, this.fullMessage.Length-endIndex-1).Trim();
+				#if DEBUG2
+				DebugUtilities.UniversalDebug(this.sourceName,
+				                              "Reading Data: [" + partialMessage + "]",
+				                              ref this.debugMessages);
+				#endif
+				RaiseDataReceived(this.IP, partialMessage);
+				#if DEBUG2
+				DebugUtilities.UniversalDebug(this.sourceName,
+				                              "Remaining message: " + fullMessage.Length,
+				                              ref this.debugMessages);
+				#endif
+			}
 		}
 		#endregion
 	}
