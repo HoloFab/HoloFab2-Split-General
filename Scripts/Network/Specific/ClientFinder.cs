@@ -19,11 +19,12 @@ namespace HoloFab {
 		// Client List
 		public Dictionary<string, HoloDevice> devices = new Dictionary<string, HoloDevice>();
 		private readonly int expireDeivceDelay = 4000;
-        
+		public bool flagUpdate = false;
+
 		private TaskInterface deviceUpdater;
         
-		public ClientFinder(object owner, string _ownerName="") :
-			                                                    base(_owner: owner, _port: 8888, _ownerName: _ownerName){
+		public ClientFinder(object owner, int _port=8801, string _ownerName="") :
+			                                                    base(_owner: owner, _port: _port, _ownerName: _ownerName){
 			this.OnDataReceived += OnDeviceReceived;
             
 			this.deviceUpdater = new TaskInterface(UpdateDevices, _delayInTask: 1000);
@@ -60,7 +61,7 @@ namespace HoloFab {
 		}
         
 		private void UpdateDevices() {
-			bool flagUpdate = false;
+			//this.flagUpdate = false;
 			// Check if any of devices have to be excluded.
 			List<string> removeList = new List<string>();
 			lock (this.devices) {
@@ -68,14 +69,14 @@ namespace HoloFab {
 					foreach (KeyValuePair<string, HoloDevice> item in this.devices)
 						if (DateTime.Now - item.Value.lastCall > TimeSpan.FromMilliseconds(this.expireDeivceDelay)) {
 							removeList.Add(item.Key);
-							flagUpdate = true;
+                            this.flagUpdate = true;
 						}
 					// Check if solution need to update.
-					if (flagUpdate) {
+					if (this.flagUpdate) {
 						for (int i = removeList.Count - 1; i>=0; i--)
 							this.devices.Remove(removeList[i]);
-						Instances.InvalidateCanvas();
-						((HoloConnect)this.owner).ExpireSolution(true);
+						//Instances.InvalidateCanvas();
+						//((HoloConnect)this.owner).ExpireSolution(true);
 					}
 				} catch { }
 			}

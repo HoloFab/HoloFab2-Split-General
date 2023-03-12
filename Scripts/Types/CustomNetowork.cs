@@ -5,30 +5,22 @@ using System.Collections.Generic;
 using Grasshopper.Kernel;
 #endif
 
-namespace HoloFab
-{
+namespace HoloFab {
     // Structure to hold Custom data types holding data to be sent.
-    namespace CustomData
-    {
+    namespace CustomData {
 #if !(UNITY_EDITOR || UNITY_ANDROID || UNITY_IOS || WINDOWS_UWP)  // WHAT DOES THE FUCK?
         // A struct holding network info for other components.
-        public class HoloConnection
-        {
+        public class HoloConnection {
             public string remoteIP;
             public bool status;
 
             public GH_Component owner;
             private ClientUpdater clientUpdater;
+            private ClientAcknowledger clientAcknowledger;
 
             // UDP Connections List for tracking
             private Dictionary<int,NetworkAgent> networkAgents = new Dictionary<int, NetworkAgent>();
-
-            public bool MessagesAvailable{
-                get {
-                    return false;
-                }
-            }
-            
+                        
             public HoloConnection(GH_Component owner, string remoteIP){
                 this.owner = owner;
                 this.remoteIP = remoteIP;
@@ -43,64 +35,73 @@ namespace HoloFab
                 this.owner.ExpireSolution(true);
             }
             //////////////////////////////////////////////////////////////////////////////
+            public void SetupUpdate() {
+                // Special network agents not tracked by system.
+                // - Create new acknowledger if needed.
+                if (this.clientAcknowledger == null) {
+                    int port = 8803;
+                    this.clientAcknowledger = new ClientAcknowledger(this.owner, _port: port);
+                    this.clientAcknowledger.Connect();
+                    this.clientAcknowledger.StartReceiving();
+                }
+                // - Create new updater if needed.
+                //   Check if invalid updater is present.
+                if ((this.clientUpdater != null) && (this.clientUpdater.IP != this.remoteIP)) {
+                    this.clientUpdater.StopSending();
+                    this.clientUpdater.Disconnect();
+                    this.clientUpdater = null;
+                }
+                if (this.clientUpdater == null) {
+                    int port = 8802;
+                    this.clientUpdater = new ClientUpdater(this.owner, remoteIP, _port: port);
+                    this.clientUpdater.Connect();
+                    this.clientUpdater.StartSending();
+                    this.clientUpdater.UpdateDevice();
+                }
+            }
             public bool Connect() {
-                SetupUpdate();
+                // Connect is decoupled form Set up to allow agents to register
+                // and allow for the client to acknowledge.
                 foreach (NetworkAgent agent in this.networkAgents.Values) {
                     agent.Connect();
                     agent.StartSending();
                     agent.StartReceiving();
                 }
-                this.clientUpdater.UpdateDevice();
                 return true;
             }
             public void Disconnect() {
+                // Disconnect all agents including specialized ones.
                 foreach (NetworkAgent agent in this.networkAgents.Values) {
                     agent.StopSending();
                     agent.StopReceiving();
                     agent.Disconnect();
                 }
                 this.networkAgents.Clear();
-                this.clientUpdater = null;
-                this.status = false;
-            }
-            //////////////////////////////////////////////////////////////////////////////
-            void SetupUpdate() {
-                // check if invalid updater is present.
-                if ((this.clientUpdater != null) && (this.clientUpdater.IP != this.remoteIP)) {
+                if (this.clientUpdater != null) { 
                     this.clientUpdater.StopSending();
                     this.clientUpdater.Disconnect();
                     this.clientUpdater = null;
                 }
-                // Create new updater if needed
-                if (this.clientUpdater == null) {
-                    HoloComponent component = new HoloComponent(SourceType.UDP, SourceCommunicationType.Sender, 8889);
-                    this.clientUpdater = new ClientUpdater(this.owner, remoteIP);
-                    if (this.networkAgents.ContainsKey(component.id))
-                        this.networkAgents[component.id] = (NetworkAgent)this.clientUpdater;
-                    else
-                        this.networkAgents.Add(component.id, (NetworkAgent)this.clientUpdater);
+                if (this.clientAcknowledger != null) { 
+                    this.clientAcknowledger.StopReceiving();
+                    this.clientAcknowledger.Disconnect();
+                    this.clientAcknowledger = null;
                 }
-                
+                this.status = false;
             }
+            //////////////////////////////////////////////////////////////////////////////
             
             public int RegisterAgent(SourceType _sourceType, SourceCommunicationType _sourceCommunicationType) {
+                if (_sourceType == SourceType.TCP)
+                    _sourceCommunicationType = SourceCommunicationType.SenderReceiver;
                 HoloComponent component = new HoloComponent(_sourceType, _sourceCommunicationType);
                 if (!this.clientUpdater.ContainsID(component.id)){
                     this.clientUpdater.RegisterAgent(component);
                     NetworkAgent agent = component.ToNetworkAgent(this.owner, this.remoteIP);
-                    bool success = agent.Connect();
-                    if (success) { 
-                        agent.StartSending();
-                        agent.StartReceiving();
-
-                        if (this.networkAgents.ContainsKey(component.id))
-                            this.networkAgents[component.id] = agent;
-                        else
-                            this.networkAgents.Add(component.id, agent);
-                    } else {
-                        Disconnect();
-                        return -1;
-                    }
+                    if (this.networkAgents.ContainsKey(component.id))
+                        this.networkAgents[component.id] = agent;
+                    else
+                        this.networkAgents.Add(component.id, agent);
                 }
                 return component.id;
             }
@@ -109,7 +110,14 @@ namespace HoloFab
                 if (this.networkAgents.ContainsKey(componentID))
                     this.networkAgents[componentID]?.QueueUpData(data);
             }
-            public string LastMessage() { 
+            public bool MessagesAvailable{
+                get {
+                    // TODO: Check if any messages are available on any network agent.
+                    return false;
+                }
+            }
+            public string LastMessage(int componentID) {
+                // TODO: Check if any messages are available on any network agent.
                 return string.Empty;
             }
             //////////////////////////////////////////////////////////////////////////////

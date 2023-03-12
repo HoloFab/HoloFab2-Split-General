@@ -21,8 +21,16 @@ namespace HoloFab {
 			}
             
 			public HoloSystemState() {
-				this.serverIP = NetworkUtilities.LocalIPAddress();
 				this.holoComponents = new List<HoloComponent>();
+				Update();
+
+            }
+			public void Clear() {
+				this.serverIP = string.Empty;
+                this.holoComponents.Clear();
+            }
+			public void Update() { 
+				this.serverIP = NetworkUtilities.LocalIPAddress();
 			}
 		}
 		[System.Serializable]

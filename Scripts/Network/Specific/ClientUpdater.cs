@@ -12,46 +12,59 @@ using Grasshopper;
 
 namespace HoloFab {
 	public class ClientUpdater : UDPSend {
-		private static HoloSystemState holoState;
+		private HoloSystemState holoState;
 		protected override string agentName {
 			get {
 				return "UDP Client Updater Interface";
 			}
 		}
 		public bool ContainsID(int _id) {
-			return ClientUpdater.holoState.ContainsID(_id);
+			try { 
+				return this.holoState.ContainsID(_id);
+			} catch {
+                this.holoState = new HoloSystemState();
+                return false;
+			}
 		}
 		public HoloComponent this[int _id] {
 			get {
-				return ClientUpdater.holoState?[_id];
+				try {
+                    return this.holoState[_id];
+                } catch {
+					this.holoState = new HoloSystemState();
+					return null;
+				}
 			}
 		}
-		public ClientUpdater(object _owner, string _IP, string _ownerName="") :
-			                                                                  base(_owner, _IP: _IP, _port: 8889, _ownerName: _ownerName) {}
+		public ClientUpdater(object _owner, string _IP, int _port=8802, string _ownerName="") :
+														base(_owner, _IP: _IP, _port: _port, _ownerName: _ownerName) {
+            this.holoState = new HoloSystemState();
+		}
 		////////////////////////////////////////////////////////////////////////
 		public void UpdateDevice() {
-			byte[] data = EncodeUtilities.EncodeData("HOLOSTATE", ClientUpdater.holoState, out _);
+			this.holoState.Update();
+			byte[] data = EncodeUtilities.EncodeData("HOLOSTATE", this.holoState, out _);
 			QueueUpData(data);
 		}
 		public void RegisterAgent(HoloComponent component) {
-			ClientUpdater.holoState.holoComponents.Add(component);
+            this.holoState.holoComponents.Add(component);
 			UpdateDevice();
 		}
 		////////////////////////////////////////////////////////////////////////
 		public override bool Connect() {
-			if (ClientUpdater.holoState == null)
-				ClientUpdater.holoState = new HoloSystemState();
 			return base.Connect();
 		}
 		public override void Disconnect() {
 			// Notify client.
-			byte[] data = EncodeUtilities.EncodeData("HOLOTERMINATED", ClientUpdater.holoState, out _);
+			byte[] data = EncodeUtilities.EncodeData("HOLOTERMINATED", this.holoState, out _);
 			SendData(data);
-			// Clear holostate.
-			ClientUpdater.holoState = null;
-			// Disconnect itself.
+			// Delay to let the message through. ? Check if necessary
+			Thread.Sleep(10);
+            // Clear holostate.
+            this.holoState.Clear();
+            // Disconnect itself.
 			base.Disconnect();
-		}
+        }
 	}
 }
 #endif
