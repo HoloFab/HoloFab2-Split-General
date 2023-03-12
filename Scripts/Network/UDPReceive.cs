@@ -49,8 +49,18 @@ namespace HoloFab {
 			byte[] data;
             
 			try {
+				// TODO: Should bnnot be here:
+				// Find where receiver gets "disconnected".
+				if (this._client == null) Connect();
+				if (this._client == null) {
+					#if DEBUGWARNING
+					DebugUtilities.UniversalWarning(this.sourceName,
+													"Failed to connect.",
+													ref this.debugMessages);
+					#endif
+					return;
+				}
 				// Receive Bytes.
-				//Connect();
 				data = this._client.Receive(ref anyIP);
 				//Disconnect();
 				if (data.Length > 0) {
@@ -58,23 +68,6 @@ namespace HoloFab {
 					this.fullMessage = EncodeUtilities.DecodeData(data).Trim();
 					this.IP = anyIP.Address.ToString();
                     ExtractMessages();
-					// // If string not empty and not read yet - react to it.
-					// if (!string.IsNullOrEmpty(this.fullMessage)) {
-					// 	// Raise Events
-					// 	do {
-					// 		endIndex = this.fullMessage
-					// 		           .IndexOf(EncodeUtilities.messageSplitter, startIndex);
-					// 		if (endIndex == -1) endIndex = this.fullMessage.Length;
-					// 		message = this.fullMessage.Substring(startIndex, endIndex-startIndex);
-					// 		RaiseDataReceived(anyIP.Address.ToString(), message);
-					// 		#if DEBUG
-					// 		DebugUtilities.UniversalDebug(this.sourceName,
-					// 		                              "Reading Data: " + message,
-					// 		                              ref this.debugMessages);
-					// 		#endif
-					// 		startIndex = endIndex+1;
-					// 	} while (startIndex < this.fullMessage.Length);
-					// }
 				}
 			} catch (Exception exception) {
 				string exceptionName;

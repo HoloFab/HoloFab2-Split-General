@@ -32,7 +32,11 @@ namespace HoloFab {
 			public void Update() { 
 				this.serverIP = NetworkUtilities.LocalIPAddress();
 			}
-		}
+
+            public override string ToString() {
+				return this.serverIP + "[" + String.Join(";", this.holoComponents.Select(item => item.ToString()).ToArray()) + "]";
+            }
+        }
 		[System.Serializable]
 		public class HoloComponent {
 			public SourceType sourceType;
@@ -92,7 +96,12 @@ namespace HoloFab {
 					 break;
 				}
 				return agent;
-			}
-		}
+            }
+            public override string ToString() {
+				return "SourceType: " + this.sourceType.ToString() + "; "
+					+ "CommunicationType: " + this.communicationType.ToString() + "; "
+                    + "Port: " + this.port.ToString();
+            }
+        }
 	}
 }
