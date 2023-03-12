@@ -56,8 +56,8 @@ namespace HoloFab {
 				if (data.Length > 0) {
 					// If buffer not empty - decode it.
 					this.fullMessage = EncodeUtilities.DecodeData(data).Trim();
-                    
-					ExtractMessages();
+					this.IP = anyIP.Address.ToString();
+                    ExtractMessages();
 					// // If string not empty and not read yet - react to it.
 					// if (!string.IsNullOrEmpty(this.fullMessage)) {
 					// 	// Raise Events

@@ -187,12 +187,20 @@ namespace HoloFab {
 			if (temp != null)
 				temp(this, new DataReceivedArgs(source, data));
 		}
-		protected void ExtractMessages(){
+		protected void ExtractMessages() {
 			// Extract parts and raise Events
 			string partialMessage;
 			int endIndex = 0;
-            
-			while ((this.fullMessage.Length > 1) && this.fullMessage.Contains(EncodeUtilities.messageSplitter)) {
+
+			if ((this.fullMessage.Length > 1) && !this.fullMessage.Contains(EncodeUtilities.messageSplitter)) {
+				#if DEBUG2
+				DebugUtilities.UniversalDebug(this.sourceName,
+				                              "Reading Data: [" + this.fullMessage + "]",
+				                              ref this.debugMessages);
+				#endif
+                RaiseDataReceived(this.IP, this.fullMessage);
+			}
+            while ((this.fullMessage.Length > 1) && this.fullMessage.Contains(EncodeUtilities.messageSplitter)) {
 				endIndex = this.fullMessage.IndexOf(EncodeUtilities.messageSplitter, 0);
 				#if DEBUG2
 				DebugUtilities.UniversalDebug(this.sourceName,
