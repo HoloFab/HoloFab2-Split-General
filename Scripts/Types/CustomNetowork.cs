@@ -19,8 +19,8 @@ namespace HoloFab {
             private ClientAcknowledger clientAcknowledger;
 
             // UDP Connections List for tracking
-            private Dictionary<int,NetworkAgent> networkAgents = new Dictionary<int, NetworkAgent>();
-                        
+            private Dictionary<int, NetworkAgent> networkAgents = new Dictionary<int, NetworkAgent>();
+            
             public HoloConnection(GH_Component owner, string remoteIP){
                 this.owner = owner;
                 this.remoteIP = remoteIP;
@@ -90,7 +90,6 @@ namespace HoloFab {
                 this.status = false;
             }
             //////////////////////////////////////////////////////////////////////////////
-            
             public int RegisterAgent(SourceType _sourceType, SourceCommunicationType _sourceCommunicationType) {
                 if (_sourceType == SourceType.TCP)
                     _sourceCommunicationType = SourceCommunicationType.SenderReceiver;
@@ -105,20 +104,16 @@ namespace HoloFab {
                 }
                 return component.id;
             }
-            //////////////////////////////////////////////////////////////////////////////
-            public void QueueUpData(int componentID, byte[] data) {
-                if (this.networkAgents.ContainsKey(componentID))
-                    this.networkAgents[componentID]?.QueueUpData(data);
-            }
-            public bool MessagesAvailable{
-                get {
-                    // TODO: Check if any messages are available on any network agent.
-                    return false;
+            public void RegisterReceiverCallback(int communicatorID, EventHandler<DataReceivedArgs> OnDataReceived) {
+                if (this.networkAgents.ContainsKey(communicatorID)) { 
+                    this.networkAgents[communicatorID].OnDataReceived -= OnDataReceived;
+                    this.networkAgents[communicatorID].OnDataReceived += OnDataReceived;
                 }
             }
-            public string LastMessage(int componentID) {
-                // TODO: Check if any messages are available on any network agent.
-                return string.Empty;
+            //////////////////////////////////////////////////////////////////////////////
+            public void QueueUpData(int _componentID, byte[] _data) {
+                if (this.networkAgents.ContainsKey(_componentID))
+                    this.networkAgents[_componentID]?.QueueUpData(_data);
             }
             //////////////////////////////////////////////////////////////////////////////
 
