@@ -56,5 +56,20 @@ namespace HoloFab {
 				if (_floats.Count > 0) this.floats = _floats;
 			}
 		}
+		// Custom Marked Point Data encoding
+		[Serializable]
+		public class MarkedPointData {
+            public List<float[]> points;
+            public List<float[]> normals;
+            
+            public MarkedPointData() {
+                this.points = new List<float[]>();
+                this.normals = new List<float[]>();
+            }
+            public MarkedPointData(List<float[]> _points, List<float[]> _normals) : this() {
+                if (_points.Count > 0) this.points = _points;
+                if (_normals.Count > 0) this.normals = _normals;
+            }
+        }
 	}
 }
