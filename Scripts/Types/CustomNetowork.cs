@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using Grasshopper;
 
 #if !(UNITY_EDITOR || UNITY_ANDROID || UNITY_IOS || WINDOWS_UWP) 
+using Grasshopper;
 using Grasshopper.Kernel;
 #endif
 

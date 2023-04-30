@@ -1,6 +1,6 @@
-﻿#define DEBUG
+﻿// #define DEBUG
 #define DEBUGWARNING
-// #undef DEBUG
+#undef DEBUG
 // #undef DEBUGWARNING
 
 using System;

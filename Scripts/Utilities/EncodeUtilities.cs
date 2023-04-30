@@ -100,9 +100,9 @@ namespace HoloFab {
 		// }
 		// Encode a Location.
 		public static float[] EncodeLocation(Vector3 _point){
-			return new float[] {(float)Math.Round(_point.x/1000.0,3),
-					            (float)Math.Round(_point.z/1000.0,3),
-					            (float)Math.Round(_point.y/1000.0,3)};
+			return new float[] {(float)Math.Round(_point.x*1000.0,3),
+					            (float)Math.Round(_point.z*1000.0,3),
+					            (float)Math.Round(_point.y*1000.0,3)};
 		}
 		#endif
 		#endregion

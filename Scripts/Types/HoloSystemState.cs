@@ -46,10 +46,10 @@ namespace HoloFab {
 			public int id {
 				get {
 					int _id =
-						(((int)this.sourceType).ToString()
-						 +((int)this.communicationType).ToString()
-						 +this.port.ToString())
-						.GetHashCode();
+						(((int)this.sourceType).ToString() + "|"
+                         + ((int)this.communicationType).ToString() + "|"
+						 +this.port.ToString()
+						).GetHashCode();
 					return _id;
 				}
 			}

@@ -1,4 +1,11 @@
-﻿using System;
+﻿//#define DEBUG
+//#define DEBUG2
+#define DEBUGWARNING
+#undef DEBUG
+#undef DEBUG2
+//#undef DEBUGWARNING
+
+using System;
 using System.Collections.Generic;
 
 using System.Threading;
