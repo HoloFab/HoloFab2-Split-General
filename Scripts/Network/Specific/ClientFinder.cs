@@ -19,7 +19,6 @@ namespace HoloFab {
 		// Client List
 		public Dictionary<string, HoloDevice> devices = new Dictionary<string, HoloDevice>();
 		private readonly int expireDeivceDelay = 4000;
-		public bool flagUpdate = false;
 
 		private TaskInterface deviceUpdater;
         
@@ -69,15 +68,12 @@ namespace HoloFab {
 					foreach (KeyValuePair<string, HoloDevice> item in this.devices)
 						if (DateTime.Now - item.Value.lastCall > TimeSpan.FromMilliseconds(this.expireDeivceDelay)) {
 							removeList.Add(item.Key);
-                            this.flagUpdate = true;
 						}
 					// Check if solution need to update.
-					if (this.flagUpdate) {
-						for (int i = removeList.Count - 1; i>=0; i--)
-							this.devices.Remove(removeList[i]);
-						//Instances.InvalidateCanvas();
-						//((HoloConnect)this.owner).ExpireSolution(true);
-					}
+					for (int i = removeList.Count - 1; i>=0; i--)
+						this.devices.Remove(removeList[i]);
+					//Instances.InvalidateCanvas();
+					//((HoloConnect)this.owner).ExpireSolution(true);
 				} catch { }
 			}
 		}

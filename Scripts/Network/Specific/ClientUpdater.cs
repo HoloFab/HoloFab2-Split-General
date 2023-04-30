@@ -65,6 +65,10 @@ namespace HoloFab {
             // Disconnect itself.
 			base.Disconnect();
         }
+		public bool CompareState(HoloSystemState clientState) {
+			return (this.holoState.serverIP == clientState.serverIP
+				&& this.holoState.holoComponents.Count == clientState.holoComponents.Count);
+		}
 	}
 }
 #endif

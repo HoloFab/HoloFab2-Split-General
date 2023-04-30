@@ -42,8 +42,8 @@ namespace HoloFab {
 				DebugUtilities.UniversalDebug(this.sourceName, "Header: " + header + ", content: " + content);
 				#endif
 				if (header == "HOLOACKNOWLEDGE") {
-					// TODO check client's state and compare
-					((HoloConnect)this.owner).connect.Connect();
+					HoloSystemState clientState = EncodeUtilities.InterpreteHoloState(content);
+                    ((HoloConnect)this.owner).connect.CheckState(clientState);
 				}
 			}
 		}

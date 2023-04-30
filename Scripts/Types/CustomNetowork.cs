@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Grasshopper;
 
 #if !(UNITY_EDITOR || UNITY_ANDROID || UNITY_IOS || WINDOWS_UWP) 
 using Grasshopper.Kernel;
@@ -33,6 +34,7 @@ namespace HoloFab {
 
             public void RefreshOwner() {
                 this.owner.ExpireSolution(true);
+                Instances.InvalidateCanvas();
             }
             //////////////////////////////////////////////////////////////////////////////
             public void SetupUpdate() {
@@ -59,7 +61,11 @@ namespace HoloFab {
                     this.clientUpdater.UpdateDevice();
                 }
             }
-            public bool Connect() {
+            public void CheckState(HoloSystemState clientState) {
+                if (this.clientUpdater.CompareState(clientState))
+                    Connect();
+            }
+            private bool Connect() {
                 // Connect is decoupled form Set up to allow agents to register
                 // and allow for the client to acknowledge.
                 foreach (NetworkAgent agent in this.networkAgents.Values) {

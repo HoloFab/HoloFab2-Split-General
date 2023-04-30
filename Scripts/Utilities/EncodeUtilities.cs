@@ -51,6 +51,9 @@ namespace HoloFab {
 		public static string DecodeData(byte[] data, int index, int count) {
 			return Encoding.UTF8.GetString(data, index, count);
 		}
+		public static HoloSystemState InterpreteHoloState(string data){
+			return JsonConvert.DeserializeObject<HoloSystemState>(data);
+		}
 		#endregion
 		//////////////////////////////////////////////////////////////////////////////
 		#region RhinoOnly
@@ -95,9 +98,6 @@ namespace HoloFab {
 		// public static string InterpreteIPAddress(string data){
 		// 	return data.Replace("\"", string.Empty);
 		// }
-		public static HoloSystemState InterpreteHoloState(string data){
-			return JsonConvert.DeserializeObject<HoloSystemState>(data);
-		}
 		// Encode a Location.
 		public static float[] EncodeLocation(Vector3 _point){
 			return new float[] {(float)Math.Round(_point.x/1000.0,3),
