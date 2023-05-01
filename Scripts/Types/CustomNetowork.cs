@@ -62,8 +62,8 @@ namespace HoloFab {
                 }
             }
             public void CheckState(HoloSystemState clientState) {
-                if (this.clientUpdater.CompareState(clientState))
-                    Connect();
+                //if (this.clientUpdater.CompareState(clientState))
+                Connect();
             }
             private bool Connect() {
                 // Connect is decoupled form Set up to allow agents to register

@@ -60,15 +60,15 @@ namespace HoloFab {
 				 case SourceType.UDP:
 					 switch (_sourceCommunicationType) {
 					  case SourceCommunicationType.Sender:
-						  //port = 12121;
+						  port = 8811;
 						  break;
 					  case SourceCommunicationType.Receiver:
-						  //port = 12121;
+						  port = 8810;
 						  break;
 					 }
 					 break;
 				 case SourceType.TCP:
-					 //port = 12121;
+					 port = 12121;
 					 break;
 				}
 				if (portOverride != -1)

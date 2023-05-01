@@ -21,6 +21,16 @@ namespace HoloFab {
 		private readonly int expireDeivceDelay = 4000;
 
 		private TaskInterface deviceUpdater;
+		private bool flagChanged;
+		public bool FlagChanged {
+			get {
+				return this.flagChanged;
+            }
+			set {
+				this.flagChanged = value;
+
+            }
+		}
         
 		public ClientFinder(object owner, int _port=8801, string _ownerName="") :
 			                                                    base(_owner: owner, _port: _port, _ownerName: _ownerName){
@@ -53,9 +63,10 @@ namespace HoloFab {
 			                              ref this.debugMessages);
 			#endif
 			lock (this.devices)
-				if (!this.devices.ContainsKey(clientAddress))
+				if (!this.devices.ContainsKey(clientAddress)) { 
 					this.devices.Add(clientAddress, new HoloDevice(clientAddress, clientRequest));
-				else
+					this.flagChanged = true;
+				}else
 					this.devices[clientAddress].lastCall = DateTime.Now;
 		}
         
@@ -70,6 +81,7 @@ namespace HoloFab {
 							removeList.Add(item.Key);
 						}
 					// Check if solution need to update.
+					this.flagChanged |= removeList.Count > 0;
 					for (int i = removeList.Count - 1; i>=0; i--)
 						this.devices.Remove(removeList[i]);
 					//Instances.InvalidateCanvas();
